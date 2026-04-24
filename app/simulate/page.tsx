@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useCallback, useMemo, useRef } from 'react';
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { DemoQueryLoader } from '@/components/DemoSwitcher';
 import { PageTransition } from '@/components/PageTransition';
+import { runPipelineFromClient } from '@/lib/backend/client';
 import { computeBiologicalAge, computeRisks } from '@/lib/risks';
 import { useFutureMeStore } from '@/lib/store';
 import type { HealthInputs } from '@/lib/fhir';
@@ -29,11 +30,17 @@ const SLIDERS: {
 ];
 
 export default function SimulatePage() {
+  const backendDefault = process.env.NEXT_PUBLIC_USE_PIPELINE_API === '1';
   const profile = useFutureMeStore((state) => state.profile);
   const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
   const setSimulatedInputs = useFutureMeStore((state) => state.setSimulatedInputs);
+  const pipelineAnalysis = useFutureMeStore((state) => state.pipelineAnalysis);
+  const setPipelineAnalysis = useFutureMeStore((state) => state.setPipelineAnalysis);
   const addMessage = useFutureMeStore((state) => state.addMessage);
   const sentFeedback = useRef(false);
+  const [useBackendPipeline, setUseBackendPipeline] = useState(backendDefault);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const currentRisks = useMemo(() => (profile ? computeRisks(profile.inputs) : null), [profile]);
   const simulatedRisks = useMemo(() => (simulatedInputs ? computeRisks(simulatedInputs) : null), [simulatedInputs]);
@@ -63,6 +70,28 @@ export default function SimulatePage() {
     },
     [addMessage, profile, setSimulatedInputs, simulatedInputs]
   );
+
+  const runBackendAnalysis = useCallback(async () => {
+    if (!simulatedInputs || isAnalyzing) return;
+
+    setAnalysisError(null);
+    setIsAnalyzing(true);
+    try {
+      const analysis = await runPipelineFromClient({
+        inputs: simulatedInputs,
+        yearsOfHistory: 5,
+        includePubMed: true,
+        enableLlmSummary: true,
+        kNearest: 3
+      });
+      setPipelineAnalysis(analysis);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Pipeline analysis failed';
+      setAnalysisError(message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [isAnalyzing, setPipelineAnalysis, simulatedInputs]);
 
   if (!profile || !simulatedInputs || !currentRisks || !simulatedRisks || currentBioAge === null || simulatedBioAge === null) {
     return (
@@ -108,7 +137,33 @@ export default function SimulatePage() {
               <RotateCcw className="h-4 w-4" />
               Reset baseline
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                setUseBackendPipeline((value) => !value);
+                setAnalysisError(null);
+              }}
+              className={`inline-flex items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                useBackendPipeline
+                  ? 'border-emerald-300/40 bg-emerald-400/15 text-emerald-100'
+                  : 'border-white/15 text-slate-300 hover:border-twin/35 hover:text-twin'
+              }`}
+            >
+              Backend pipeline {useBackendPipeline ? 'on' : 'off'}
+            </button>
+            {useBackendPipeline ? (
+              <button
+                type="button"
+                onClick={() => void runBackendAnalysis()}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-twin px-4 py-2 text-sm font-semibold text-navy-950 transition hover:brightness-110 disabled:opacity-50"
+                disabled={isAnalyzing}
+              >
+                {isAnalyzing ? 'Analyzing...' : 'Analyze with backend'}
+              </button>
+            ) : null}
           </header>
+
+          {analysisError ? <p className="mb-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{analysisError}</p> : null}
 
           <div className="grid gap-6 lg:grid-cols-[1fr_0.92fr]">
             <section className="glass-panel rounded-2xl p-5 sm:p-6">
@@ -219,6 +274,29 @@ export default function SimulatePage() {
                 );
               })}
             </section>
+
+            {useBackendPipeline && pipelineAnalysis ? (
+              <section className="mt-6 space-y-4">
+                <article className="glass-panel rounded-2xl p-4">
+                  <h2 className="text-sm font-semibold text-white">Backend Risk Indices</h2>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Framingham: <span className="text-twin">{pipelineAnalysis.riskEvidence.framingham10YearRiskPercent}%</span> · ASCVD proxy:{' '}
+                    <span className="text-twin">{pipelineAnalysis.riskEvidence.ascvdProxy10YearRiskPercent}%</span> · Life Essential 8 proxy:{' '}
+                    <span className="text-twin">{pipelineAnalysis.riskEvidence.lifeEssential8ProxyScore}/100</span>
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    PubMed query: {pipelineAnalysis.pubmed.query} ({pipelineAnalysis.pubmed.articles.length} article(s))
+                  </p>
+                </article>
+
+                {pipelineAnalysis.llm ? (
+                  <article className="glass-panel rounded-2xl p-4">
+                    <h3 className="text-sm font-semibold text-white">LLM Synthesis ({pipelineAnalysis.llm.model})</h3>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">{pipelineAnalysis.llm.summary}</p>
+                  </article>
+                ) : null}
+              </section>
+            ) : null}
           </div>
         </div>
       </PageTransition>

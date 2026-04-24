@@ -10,6 +10,7 @@ import { SliderQuestion } from '@/components/onboarding/SliderQuestion';
 import { CheckboxQuestion } from '@/components/onboarding/CheckboxQuestion';
 import { WearableImport } from '@/components/onboarding/WearableImport';
 import { STEPS } from '@/components/onboarding/steps';
+import { runPipelineFromClient } from '@/lib/backend/client';
 import { createTwinProfile } from '@/lib/profile';
 import { useFutureMeStore } from '@/lib/store';
 
@@ -54,10 +55,14 @@ const defaults: OnboardingValues = {
 };
 
 export default function OnboardingPage() {
+  const useBackendPipeline = process.env.NEXT_PUBLIC_USE_PIPELINE_API === '1';
   const router = useRouter();
   const setProfile = useFutureMeStore((state) => state.setProfile);
+  const setPipelineAnalysis = useFutureMeStore((state) => state.setPipelineAnalysis);
   const profile = useFutureMeStore((state) => state.profile);
   const [stepIndex, setStepIndex] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     control,
@@ -76,6 +81,7 @@ export default function OnboardingPage() {
   const isLastStep = stepIndex === STEPS.length - 1;
 
   const next = async () => {
+    if (submitting) return;
     const valid = step.optional ? true : await trigger(step.fields);
     if (!valid) return;
 
@@ -84,8 +90,33 @@ export default function OnboardingPage() {
       return;
     }
 
-    const { wearableImport: _wearableImport, ...inputs } = getValues();
-    setProfile(createTwinProfile(inputs));
+    const inputs = schema.omit({ wearableImport: true }).parse(getValues());
+    setSubmitError(null);
+
+    if (useBackendPipeline) {
+      setSubmitting(true);
+      try {
+        const analysis = await runPipelineFromClient({
+          inputs,
+          yearsOfHistory: 5,
+          includePubMed: true,
+          enableLlmSummary: true,
+          kNearest: 3
+        });
+        setProfile(analysis.profile);
+        setPipelineAnalysis(analysis);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Backend pipeline error';
+        setSubmitError(message);
+        setProfile(createTwinProfile(inputs));
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      setProfile(createTwinProfile(inputs));
+      setPipelineAnalysis(null);
+    }
+
     router.push('/awakening');
   };
 
@@ -100,6 +131,8 @@ export default function OnboardingPage() {
       onBack={stepIndex > 0 ? () => setStepIndex((current) => current - 1) : undefined}
       nextLabel={isLastStep ? 'Generate my twin' : 'Continue'}
     >
+      {submitError ? <p className="mb-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</p> : null}
+
       {step.id === 'basics' ? (
         <div className="space-y-4">
           <label className="block">

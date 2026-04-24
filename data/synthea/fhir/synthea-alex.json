@@ -1,0 +1,103 @@
+{
+  "resourceType": "Bundle",
+  "type": "collection",
+  "entry": [
+    {
+      "resource": {
+        "resourceType": "Patient",
+        "id": "alex-001",
+        "name": [{ "text": "Alex Synthea" }],
+        "gender": "male",
+        "birthDate": "1992-04-12"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "39156-5", "display": "BMI" }] },
+        "valueQuantity": { "value": 28.1, "unit": "kg/m2" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "93832-4", "display": "Sleep duration" }] },
+        "valueQuantity": { "value": 5.3, "unit": "h" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "68516-4", "display": "Exercise frequency" }] },
+        "valueQuantity": { "value": 1, "unit": "d/wk" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "75302-0", "display": "Diet quality" }] },
+        "valueQuantity": { "value": 2, "unit": "{score}" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "72133-2", "display": "Stress" }] },
+        "valueQuantity": { "value": 4, "unit": "{score}" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "72166-2", "display": "Smoking status" }] },
+        "valueString": "current"
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "74013-4", "display": "Alcohol use" }] },
+        "valueQuantity": { "value": 10, "unit": "drinks/wk" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "8480-6", "display": "Systolic blood pressure" }] },
+        "valueQuantity": { "value": 136, "unit": "mmHg" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "2093-3", "display": "Total cholesterol" }] },
+        "valueQuantity": { "value": 217, "unit": "mg/dL" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Observation",
+        "status": "final",
+        "code": { "coding": [{ "system": "http://loinc.org", "code": "2085-9", "display": "HDL cholesterol" }] },
+        "valueQuantity": { "value": 43, "unit": "mg/dL" }
+      }
+    },
+    {
+      "resource": {
+        "resourceType": "Condition",
+        "code": {
+          "text": "Essential hypertension"
+        }
+      }
+    }
+  ]
+}

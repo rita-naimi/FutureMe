@@ -83,7 +83,7 @@ export default function DashboardPage() {
           <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-medium text-twin">This is you today</p>
-              <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">{display.inputs.name}'s health snapshot</h1>
+              <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">{display.inputs.name} health snapshot</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
                 Profile stored as HL7 FHIR R4 Patient plus LOINC-coded Observations. The scores are deterministic demo heuristics, not a diagnosis.
               </p>

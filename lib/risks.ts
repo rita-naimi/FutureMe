@@ -57,7 +57,8 @@ export function computeRisks(inputs: HealthInputs): RiskScores {
   return { cardiovascular, metabolic, mentalResilience, longevity, overall };
 }
 
-export function computeBiologicalAge(inputs: HealthInputs, _risks?: RiskScores): number {
+export function computeBiologicalAge(inputs: HealthInputs, risks?: RiskScores): number {
+  void risks;
   const bmi = getBmi(inputs);
   let delta = 0;
 

@@ -43,7 +43,7 @@ export function ShareCard({ profile }: { profile: TwinProfile }) {
           </p>
         </div>
         <p className="border-t border-white/10 pt-4 text-center text-sm italic leading-relaxed text-twin">
-          "{profile.keyInsight}"
+          &quot;{profile.keyInsight}&quot;
         </p>
         <p className="mt-4 text-center text-[11px] text-slate-700">HL7 FHIR R4 · LOINC coded observations</p>
       </div>

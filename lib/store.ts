@@ -3,6 +3,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { HealthInputs, TwinProfile } from './fhir';
+import type { PipelineResponse } from './backend/types';
 import type { DemoPersonaId } from './demo-personas';
 import { createDemoProfile } from './demo-personas';
 
@@ -13,8 +14,10 @@ interface FutureMeStore {
   simulatedInputs: HealthInputs | null;
   chatHistory: ChatMessage[];
   demoPersona: DemoPersonaId | null;
+  pipelineAnalysis: PipelineResponse | null;
   setProfile: (profile: TwinProfile) => void;
   setSimulatedInputs: (inputs: HealthInputs) => void;
+  setPipelineAnalysis: (analysis: PipelineResponse | null) => void;
   addMessage: (message: ChatMessage) => void;
   replaceLastAssistantMessage: (content: string) => void;
   extractHabitChange: (message: string) => void;
@@ -29,16 +32,20 @@ export const useFutureMeStore = create<FutureMeStore>()(
       simulatedInputs: null,
       chatHistory: [],
       demoPersona: null,
+      pipelineAnalysis: null,
 
       setProfile: (profile) =>
         set({
           profile,
           simulatedInputs: profile.inputs,
           chatHistory: [],
-          demoPersona: null
+          demoPersona: null,
+          pipelineAnalysis: null
         }),
 
       setSimulatedInputs: (inputs) => set({ simulatedInputs: inputs }),
+
+      setPipelineAnalysis: (analysis) => set({ pipelineAnalysis: analysis }),
 
       addMessage: (message) => set((state) => ({ chatHistory: [...state.chatHistory, message] })),
 
@@ -90,7 +97,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
           profile,
           simulatedInputs: profile.inputs,
           chatHistory: [],
-          demoPersona: persona
+          demoPersona: persona,
+          pipelineAnalysis: null
         });
       },
 
@@ -99,7 +107,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
           profile: null,
           simulatedInputs: null,
           chatHistory: [],
-          demoPersona: null
+          demoPersona: null,
+          pipelineAnalysis: null
         })
     }),
     {
@@ -108,7 +117,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
         profile: state.profile,
         simulatedInputs: state.simulatedInputs,
         chatHistory: state.chatHistory,
-        demoPersona: state.demoPersona
+        demoPersona: state.demoPersona,
+        pipelineAnalysis: state.pipelineAnalysis
       })
     }
   )

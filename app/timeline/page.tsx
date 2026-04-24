@@ -78,7 +78,7 @@ export default function TimelinePage() {
             <p className="text-sm font-medium text-twin">Twin visualization</p>
             <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">Two futures. One choice.</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-              The grey path keeps today's profile. The teal path reflects the current simulated habit settings.
+              The grey path keeps today&apos;s profile. The teal path reflects the current simulated habit settings.
             </p>
           </header>
 
