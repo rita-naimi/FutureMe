@@ -18,8 +18,11 @@ import {
   XAxis,
   YAxis
 } from 'recharts';
+import dynamic from 'next/dynamic';
 import { PageTransition } from '@/components/PageTransition';
 import type { HealthInputs, RiskScores } from '@/lib/fhir';
+
+const TwinAvatarViewer = dynamic(() => import('@/components/twin/TwinAvatarViewer'), { ssr: false });
 import { computeBiologicalAge, computeRisks, healthScoreFromRisks } from '@/lib/risks';
 import { useFutureMeStore } from '@/lib/store';
 
@@ -102,22 +105,34 @@ export default function DashboardPage() {
     <main className="min-h-screen overflow-hidden bg-gradient-to-b from-ivory to-ivory-dark px-5 pb-32 pt-16 dark:bg-navy-950 dark:bg-none sm:px-8 lg:px-10">
       <PageTransition>
         <div className="mx-auto max-w-7xl space-y-6">
-          <section className={`${CARD} relative overflow-hidden p-6 sm:p-8 lg:p-10`}>
-            <div className="pointer-events-none absolute -right-20 -top-24 h-64 w-64 rounded-full bg-twin-dark/10 dark:bg-twin/10 lg:-right-28 lg:-top-32 lg:h-[28rem] lg:w-[28rem]" />
-            <div className="pointer-events-none absolute bottom-0 left-1/2 hidden h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-twin-dark/35 to-transparent dark:via-twin/40 lg:block" />
-            <div className="relative grid gap-7 sm:grid-cols-[1fr_auto] sm:items-center lg:grid-cols-[minmax(0,1fr)_18rem]">
-              <div>
-                <h1 className="max-w-4xl font-display text-4xl font-bold leading-tight text-slate-950 dark:text-slate-100 lg:text-6xl">
-                  {getGreeting()}, {dashboard.activeInputs.name}.
-                  <span className="block">This is your body today.</span>
-                </h1>
-                <p className="mt-5 max-w-2xl text-base leading-relaxed text-slate-500 dark:text-slate-400 lg:text-lg">
-                  {dashboard.priority.heroSentence}
-                </p>
+          <div className="flex gap-6">
+            <section className={`${CARD} relative min-w-0 flex-1 overflow-hidden p-5 sm:p-6 lg:p-7`}>
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-twin-dark/10 dark:bg-twin/10 lg:-right-20 lg:-top-20 lg:h-72 lg:w-72" />
+              <div className="pointer-events-none absolute bottom-0 left-1/2 hidden h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-twin-dark/35 to-transparent dark:via-twin/40 lg:block" />
+              <div className="relative grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center lg:grid-cols-[minmax(0,1fr)_14rem]">
+                <div>
+                  <h1 className="max-w-4xl font-display text-3xl font-bold leading-tight text-slate-950 dark:text-slate-100 lg:text-5xl">
+                    {getGreeting()}, {dashboard.activeInputs.name}.
+                    <span className="block">This is your body today.</span>
+                  </h1>
+                  <p className="mt-4 max-w-2xl text-base font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                    {getHeroSubtitle(dashboard.biologicalAge, dashboard.activeInputs.age, dashboard.healthScore)}
+                  </p>
+                </div>
+                <HealthScoreRing score={dashboard.healthScore} />
               </div>
-              <HealthScoreRing score={dashboard.healthScore} />
+            </section>
+
+            <div className="w-52 flex-shrink-0 overflow-hidden rounded-[1.65rem] lg:w-64">
+              <TwinAvatarViewer
+                inputs={dashboard.activeInputs}
+                biologicalAge={dashboard.biologicalAge}
+                healthScore={dashboard.healthScore}
+                interactive={false}
+                height="100%"
+              />
             </div>
-          </section>
+          </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(22rem,0.82fr)_minmax(0,1.45fr)]">
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
@@ -371,7 +386,6 @@ function HabitRadarCard({
   return (
     <section className={`${CARD} p-5`}>
       <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Your habit fingerprint</h2>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">Simulated changes appear in purple.</p>
       <div className="mt-3 h-56 lg:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={chartData} margin={{ top: 8, right: 18, bottom: 8, left: 18 }}>
@@ -383,6 +397,16 @@ function HabitRadarCard({
             ) : null}
           </RadarChart>
         </ResponsiveContainer>
+      </div>
+      <div className="mt-3 flex items-center justify-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-4 rounded-full bg-[#00A389]" />
+          You
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="h-2 w-4 rounded-full bg-[#8B5CF6]" />
+          Digital Twin
+        </span>
       </div>
     </section>
   );
@@ -512,6 +536,17 @@ function ProjectionTooltip({
       ))}
     </div>
   );
+}
+
+function getHeroSubtitle(bioAge: number, realAge: number, healthScore: number): string {
+  const delta = Math.round(Math.abs(bioAge - realAge));
+  if (bioAge > realAge + 2)
+    return `Your body is ${delta} year${delta !== 1 ? 's' : ''} older than you are. Every habit you change today turns that around.`;
+  if (bioAge < realAge - 2)
+    return `You're biologically ${delta} year${delta !== 1 ? 's' : ''} younger than your age. You're doing something right — let's protect it.`;
+  if (healthScore >= 75)
+    return `Your biological age matches your real age. Strong foundation — now let's push it further.`;
+  return `Small daily changes compound into years of healthy life. Here's where to start.`;
 }
 
 function getGreeting() {

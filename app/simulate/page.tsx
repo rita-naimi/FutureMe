@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { ArrowDown, ArrowRight, ArrowUp, Infinity as InfinityIcon, SlidersHorizontal } from 'lucide-react';
 import { animate, motion } from 'framer-motion';
 import { PageTransition } from '@/components/PageTransition';
@@ -10,6 +11,8 @@ import { computeBiologicalAge, computeRisks } from '@/lib/risks';
 import { createTwinProfile } from '@/lib/profile';
 import { buildSimulationPrompt, buildSystemPrompt } from '@/lib/twin-prompt';
 import { useFutureMeStore } from '@/lib/store';
+
+const TwinAvatarViewer = dynamic(() => import('@/components/twin/TwinAvatarViewer'), { ssr: false });
 
 const SLIDERS: {
   key: keyof Pick<
@@ -177,12 +180,19 @@ export default function SimulatePage() {
                 <h2 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">The payoff, live.</h2>
               </div>
 
-              <BiologicalImpactCard
-                hasChanges={hasChanges}
-                bioAgeDelta={bioAgeDelta}
-                currentBioAge={currentBioAge}
-                simulatedBioAge={simulatedBioAge}
-              />
+              <div className="grid gap-5 xl:grid-cols-[0.88fr_1fr]">
+                <TwinAvatarViewer
+                  inputs={simulatedInputs}
+                  biologicalAge={simulatedBioAge}
+                  healthScore={100 - simulatedRisks.overall}
+                />
+                <BiologicalImpactCard
+                  hasChanges={hasChanges}
+                  bioAgeDelta={bioAgeDelta}
+                  currentBioAge={currentBioAge}
+                  simulatedBioAge={simulatedBioAge}
+                />
+              </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 {RISK_ROWS.map(([label, key]) => {

@@ -1,0 +1,871 @@
+{
+  "source": "naver/anny",
+  "topology": "default",
+  "count": 54,
+  "assets": [
+    {
+      "id": "male-young-lean-low",
+      "url": "/models/anny/male-young-lean-low.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "lean",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.18,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-lean-medium",
+      "url": "/models/anny/male-young-lean-medium.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "lean",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.52,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-lean-high",
+      "url": "/models/anny/male-young-lean-high.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "lean",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.88,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-average-low",
+      "url": "/models/anny/male-young-average-low.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "average",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.18,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-average-medium",
+      "url": "/models/anny/male-young-average-medium.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "average",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-average-high",
+      "url": "/models/anny/male-young-average-high.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "average",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.88,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-heavy-low",
+      "url": "/models/anny/male-young-heavy-low.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "heavy",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.18,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-heavy-medium",
+      "url": "/models/anny/male-young-heavy-medium.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "heavy",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.52,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-young-heavy-high",
+      "url": "/models/anny/male-young-heavy-high.glb",
+      "sex": "male",
+      "ageBand": "young",
+      "weightBand": "heavy",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.64,
+        "muscle": 0.88,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-lean-low",
+      "url": "/models/anny/male-mature-lean-low.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "lean",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.18,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-lean-medium",
+      "url": "/models/anny/male-mature-lean-medium.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "lean",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.52,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-lean-high",
+      "url": "/models/anny/male-mature-lean-high.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "lean",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.88,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-average-low",
+      "url": "/models/anny/male-mature-average-low.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "average",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.18,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-average-medium",
+      "url": "/models/anny/male-mature-average-medium.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "average",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-average-high",
+      "url": "/models/anny/male-mature-average-high.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "average",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.88,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-heavy-low",
+      "url": "/models/anny/male-mature-heavy-low.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "heavy",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.18,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-heavy-medium",
+      "url": "/models/anny/male-mature-heavy-medium.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "heavy",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.52,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-mature-heavy-high",
+      "url": "/models/anny/male-mature-heavy-high.glb",
+      "sex": "male",
+      "ageBand": "mature",
+      "weightBand": "heavy",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.78,
+        "muscle": 0.88,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-lean-low",
+      "url": "/models/anny/male-older-lean-low.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "lean",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.18,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-lean-medium",
+      "url": "/models/anny/male-older-lean-medium.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "lean",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.52,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-lean-high",
+      "url": "/models/anny/male-older-lean-high.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "lean",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.88,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-average-low",
+      "url": "/models/anny/male-older-average-low.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "average",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.18,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-average-medium",
+      "url": "/models/anny/male-older-average-medium.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "average",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-average-high",
+      "url": "/models/anny/male-older-average-high.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "average",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.88,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-heavy-low",
+      "url": "/models/anny/male-older-heavy-low.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "heavy",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.18,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-heavy-medium",
+      "url": "/models/anny/male-older-heavy-medium.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "heavy",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.52,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "male-older-heavy-high",
+      "url": "/models/anny/male-older-heavy-high.glb",
+      "sex": "male",
+      "ageBand": "older",
+      "weightBand": "heavy",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 0.0,
+        "age": 0.96,
+        "muscle": 0.88,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-lean-low",
+      "url": "/models/anny/female-young-lean-low.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "lean",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.18,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-lean-medium",
+      "url": "/models/anny/female-young-lean-medium.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "lean",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.52,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-lean-high",
+      "url": "/models/anny/female-young-lean-high.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "lean",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.88,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-average-low",
+      "url": "/models/anny/female-young-average-low.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "average",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.18,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-average-medium",
+      "url": "/models/anny/female-young-average-medium.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "average",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-average-high",
+      "url": "/models/anny/female-young-average-high.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "average",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.88,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-heavy-low",
+      "url": "/models/anny/female-young-heavy-low.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "heavy",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.18,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-heavy-medium",
+      "url": "/models/anny/female-young-heavy-medium.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "heavy",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.52,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-young-heavy-high",
+      "url": "/models/anny/female-young-heavy-high.glb",
+      "sex": "female",
+      "ageBand": "young",
+      "weightBand": "heavy",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.64,
+        "muscle": 0.88,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-lean-low",
+      "url": "/models/anny/female-mature-lean-low.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "lean",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.18,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-lean-medium",
+      "url": "/models/anny/female-mature-lean-medium.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "lean",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.52,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-lean-high",
+      "url": "/models/anny/female-mature-lean-high.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "lean",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.88,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-average-low",
+      "url": "/models/anny/female-mature-average-low.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "average",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.18,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-average-medium",
+      "url": "/models/anny/female-mature-average-medium.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "average",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-average-high",
+      "url": "/models/anny/female-mature-average-high.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "average",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.88,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-heavy-low",
+      "url": "/models/anny/female-mature-heavy-low.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "heavy",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.18,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-heavy-medium",
+      "url": "/models/anny/female-mature-heavy-medium.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "heavy",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.52,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-mature-heavy-high",
+      "url": "/models/anny/female-mature-heavy-high.glb",
+      "sex": "female",
+      "ageBand": "mature",
+      "weightBand": "heavy",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.78,
+        "muscle": 0.88,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-lean-low",
+      "url": "/models/anny/female-older-lean-low.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "lean",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.18,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-lean-medium",
+      "url": "/models/anny/female-older-lean-medium.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "lean",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.52,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-lean-high",
+      "url": "/models/anny/female-older-lean-high.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "lean",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.88,
+        "weight": 0.22,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-average-low",
+      "url": "/models/anny/female-older-average-low.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "average",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.18,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-average-medium",
+      "url": "/models/anny/female-older-average-medium.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "average",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.52,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-average-high",
+      "url": "/models/anny/female-older-average-high.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "average",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.88,
+        "weight": 0.5,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-heavy-low",
+      "url": "/models/anny/female-older-heavy-low.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "heavy",
+      "muscleBand": "low",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.18,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-heavy-medium",
+      "url": "/models/anny/female-older-heavy-medium.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "heavy",
+      "muscleBand": "medium",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.52,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    },
+    {
+      "id": "female-older-heavy-high",
+      "url": "/models/anny/female-older-heavy-high.glb",
+      "sex": "female",
+      "ageBand": "older",
+      "weightBand": "heavy",
+      "muscleBand": "high",
+      "phenotype": {
+        "gender": 1.0,
+        "age": 0.96,
+        "muscle": 0.88,
+        "weight": 0.82,
+        "height": 0.54,
+        "proportions": 0.48
+      }
+    }
+  ]
+}
