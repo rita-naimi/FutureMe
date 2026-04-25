@@ -27,22 +27,81 @@ SEXES = {
 }
 
 AGE_BANDS = {
-    "young": 0.64,
-    "mature": 0.78,
-    "older": 0.96,
+    "young": 0.62,
+    "adult": 0.72,
+    "mature": 0.82,
+    "older": 0.92,
+    "elder": 1.0,
 }
 
 MUSCLE_BANDS = {
-    "low": 0.18,
+    "low": 0.14,
+    "toned": 0.32,
     "medium": 0.52,
-    "high": 0.88,
+    "strong": 0.72,
+    "high": 0.9,
 }
 
 WEIGHT_BANDS = {
-    "lean": 0.22,
+    "lean": 0.12,
+    "fit": 0.32,
     "average": 0.50,
-    "heavy": 0.82,
+    "heavy": 0.72,
+    "max": 0.9,
 }
+
+MUSCLE_DETAIL_KEYS = [
+    "l-upperarm-muscle-incr",
+    "r-upperarm-muscle-incr",
+    "l-lowerarm-muscle-incr",
+    "r-lowerarm-muscle-incr",
+    "l-upperarm-shoulder-muscle-incr",
+    "r-upperarm-shoulder-muscle-incr",
+    "measure-upperarm-circ-incr",
+    "l-upperleg-muscle-incr",
+    "r-upperleg-muscle-incr",
+    "l-lowerleg-muscle-incr",
+    "r-lowerleg-muscle-incr",
+    "l-upperleg-scale-depth-incr",
+    "r-upperleg-scale-depth-incr",
+]
+
+MASS_DETAIL_KEYS = [
+    "l-upperarm-fat-incr",
+    "r-upperarm-fat-incr",
+    "l-lowerarm-fat-incr",
+    "r-lowerarm-fat-incr",
+    "l-upperleg-fat-incr",
+    "r-upperleg-fat-incr",
+    "buttocks-volume-incr",
+    "measure-waist-circ-incr",
+    "stomach-pregnant-incr",
+]
+
+MASS_TONE_KEYS = [
+    "stomach-tone-incr",
+]
+
+
+def build_local_changes(model, muscle: str, weight: str) -> dict[str, float]:
+    available = set(model.local_change_labels)
+    muscle_delta = (MUSCLE_BANDS[muscle] - 0.52) * 0.55
+    mass_delta = (WEIGHT_BANDS[weight] - 0.50) * 0.45
+    local_changes: dict[str, float] = {}
+
+    for key in MUSCLE_DETAIL_KEYS:
+        if key in available:
+            local_changes[key] = muscle_delta
+
+    for key in MASS_DETAIL_KEYS:
+        if key in available:
+            local_changes[key] = mass_delta
+
+    for key in MASS_TONE_KEYS:
+        if key in available:
+            local_changes[key] = -mass_delta
+
+    return local_changes
 
 
 def export_body(model, sex: str, age: str, muscle: str, weight: str) -> dict[str, object]:
@@ -56,7 +115,10 @@ def export_body(model, sex: str, age: str, muscle: str, weight: str) -> dict[str
     }
 
     with torch.no_grad():
-        output = model(phenotype_kwargs=phenotype_kwargs)
+        output = model(
+            phenotype_kwargs=phenotype_kwargs,
+            local_changes_kwargs=build_local_changes(model, muscle, weight),
+        )
 
     vertices = output["vertices"].squeeze(dim=0).cpu().numpy()
     faces = model.faces.cpu().numpy()

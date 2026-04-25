@@ -22,14 +22,22 @@ function getVisualState(healthScore: number) {
   return                        { saturation:-0.72, brightness:-0.1,  contrast:0.20, lightInt:2.4, lightColor:'#223366', lightColor2:'#0a1144', ambientInt:0.65 };
 }
 
+function getMuscleScore(inputs?: HealthInputs) {
+  const exerciseDays = inputs?.exerciseDaysPerWeek ?? 3;
+  const diet = ((inputs?.dietQuality ?? 3) - 1) / 4;
+  const sleep = Math.max(0, Math.min(1, ((inputs?.sleepHours ?? 7) - 4) / 5));
+  const stressDrag = ((inputs?.stressLevel ?? 3) - 1) / 4;
+  return Math.max(0, Math.min(1, exerciseDays / 7 * 0.62 + diet * 0.18 + sleep * 0.12 - stressDrag * 0.1));
+}
+
 function pickAnnyUrl(inputs?: HealthInputs, biologicalAge?: number): string {
   const sex = inputs?.sex === 'female' ? 'female' : 'male';
   const age = biologicalAge ?? inputs?.age ?? 40;
-  const ageBand = age < 40 ? 'young' : age <= 60 ? 'mature' : 'older';
+  const ageBand = age < 35 ? 'young' : age < 48 ? 'adult' : age < 60 ? 'mature' : age < 72 ? 'older' : 'elder';
   const bmi = inputs ? getBmi(inputs) : 24;
-  const weightBand = bmi < 22 ? 'lean' : bmi < 28 ? 'average' : 'heavy';
-  const exerciseDays = inputs?.exerciseDaysPerWeek ?? 3;
-  const muscleBand = exerciseDays >= 5 ? 'high' : exerciseDays >= 3 ? 'medium' : 'low';
+  const weightBand = bmi < 20 ? 'lean' : bmi < 23 ? 'fit' : bmi < 27 ? 'average' : bmi < 31 ? 'heavy' : 'max';
+  const muscleScore = getMuscleScore(inputs);
+  const muscleBand = muscleScore < 0.2 ? 'low' : muscleScore < 0.4 ? 'toned' : muscleScore < 0.6 ? 'medium' : muscleScore < 0.78 ? 'strong' : 'high';
   return `/models/anny/${sex}-${ageBand}-${weightBand}-${muscleBand}.glb`;
 }
 
@@ -81,6 +89,8 @@ interface TwinAvatarViewerProps {
   healthScore?: number;
   inputs?: HealthInputs;
   biologicalAge?: number;
+  chronologicalAge?: number;
+  projectionYears?: number;
   gender?: string; // legacy prop, sex is read from inputs.sex
   interactive?: boolean;
   height?: number | string;
@@ -92,6 +102,8 @@ export default function TwinAvatarViewer({
   healthScore = 70,
   inputs,
   biologicalAge,
+  chronologicalAge,
+  projectionYears,
   interactive = true,
   height = 460,
   minimal = false,
@@ -160,7 +172,24 @@ export default function TwinAvatarViewer({
           padding: '4px 14px', color: col, fontSize: 11, fontWeight: 700,
           whiteSpace: 'nowrap', pointerEvents: 'none',
         }}>
-          {label}
+          {projectionYears ? `In ${projectionYears} years · ${label}` : label}
+        </div>
+      )}
+
+      {!minimal && chronologicalAge && biologicalAge && (
+        <div style={{
+          position: 'absolute', left: 14, bottom: 22,
+          background: 'rgba(15,23,42,0.62)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.16)', borderRadius: 16,
+          padding: '9px 11px', color: 'white', fontSize: 11,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ fontFamily: 'monospace', letterSpacing: '0.14em', color: 'rgba(255,255,255,0.52)', textTransform: 'uppercase' }}>
+            Projected
+          </div>
+          <div style={{ marginTop: 3, fontWeight: 700 }}>
+            age {chronologicalAge} · bio {biologicalAge}
+          </div>
         </div>
       )}
 

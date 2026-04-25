@@ -41,6 +41,8 @@ const RISK_ROWS = [
   ['Longevity drag', 'longevityDrag'] as const
 ];
 
+const HORIZONS = [10, 20, 30, 40] as const;
+
 export default function SimulatePage() {
   const profile = useFutureMeStore((state) => state.profile);
   const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
@@ -49,6 +51,7 @@ export default function SimulatePage() {
   const [reaction, setReaction] = useState('Adjust a habit and I will tell you what changed from my side of time.');
   const [reactionLoading, setReactionLoading] = useState(false);
   const [timeCapsuleOpen, setTimeCapsuleOpen] = useState(false);
+  const [projectionYears, setProjectionYears] = useState<(typeof HORIZONS)[number]>(20);
 
   const currentRisks = useMemo(() => (profile ? computeRisks(profile.inputs) : null), [profile]);
   const simulatedRisks = useMemo(() => (simulatedInputs ? computeRisks(simulatedInputs) : null), [simulatedInputs]);
@@ -127,8 +130,10 @@ export default function SimulatePage() {
     );
   }
 
-  const bioAgeDelta = simulatedBioAge - currentBioAge;
   const currentHealthScore = 100 - currentRisks.overall;
+  const currentFuture = projectFuture(profile.inputs.age, currentBioAge, currentRisks, projectionYears);
+  const simulatedFuture = projectFuture(profile.inputs.age, simulatedBioAge, simulatedRisks, projectionYears);
+  const futureBioAgeDelta = simulatedFuture.biologicalAge - currentFuture.biologicalAge;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-ivory to-ivory-dark px-5 pb-32 pt-8 dark:bg-navy-950 dark:bg-none sm:px-8 lg:px-10">
@@ -184,18 +189,23 @@ export default function SimulatePage() {
                 <h2 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">The payoff, live.</h2>
               </div>
 
+              <HorizonControl value={projectionYears} onChange={setProjectionYears} />
+
               <div className="grid items-stretch gap-5 xl:grid-cols-[0.88fr_1fr]">
                 <TwinAvatarViewer
                   inputs={simulatedInputs}
-                  biologicalAge={simulatedBioAge}
-                  healthScore={100 - simulatedRisks.overall}
+                  biologicalAge={simulatedFuture.biologicalAge}
+                  healthScore={simulatedFuture.healthScore}
+                  projectionYears={projectionYears}
+                  chronologicalAge={simulatedFuture.chronologicalAge}
                 />
                 <div className="grid gap-4 xl:grid-rows-[1fr_auto]">
                   <BiologicalImpactCard
                     hasChanges={hasChanges}
-                    bioAgeDelta={bioAgeDelta}
-                    currentBioAge={currentBioAge}
-                    simulatedBioAge={simulatedBioAge}
+                    bioAgeDelta={futureBioAgeDelta}
+                    currentBioAge={currentFuture.biologicalAge}
+                    simulatedBioAge={simulatedFuture.biologicalAge}
+                    projectionYears={projectionYears}
                   />
                   <FutureMessageLauncher onOpen={() => setTimeCapsuleOpen(true)} />
                 </div>
@@ -248,6 +258,45 @@ export default function SimulatePage() {
         </AnimatePresence>
       </PageTransition>
     </main>
+  );
+}
+
+function HorizonControl({
+  value,
+  onChange
+}: {
+  value: (typeof HORIZONS)[number];
+  onChange: (value: (typeof HORIZONS)[number]) => void;
+}) {
+  const fill = ((value - 10) / 30) * 100;
+
+  return (
+    <section className="mb-5 rounded-[1.25rem] border border-black/10 bg-white/65 p-4 dark:border-white/10 dark:bg-white/[0.06]">
+      <div className="mb-3 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Time horizon</p>
+          <p className="mt-1 text-sm font-medium text-slate-600 dark:text-slate-300">
+            Avatar shows accumulated impact, not an instant change.
+          </p>
+        </div>
+        <p className="font-display text-3xl font-bold text-slate-950 dark:text-white">+{value}y</p>
+      </div>
+      <input
+        type="range"
+        min={10}
+        max={40}
+        step={10}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value) as (typeof HORIZONS)[number])}
+        className="lab-slider w-full"
+        style={{ ['--slider-fill' as string]: `${fill}%` }}
+      />
+      <div className="mt-2 grid grid-cols-4 text-center font-mono text-[11px] text-slate-400 dark:text-slate-600">
+        {HORIZONS.map((year) => (
+          <span key={year}>{year}y</span>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -377,12 +426,14 @@ function BiologicalImpactCard({
   hasChanges,
   bioAgeDelta,
   currentBioAge,
-  simulatedBioAge
+  simulatedBioAge,
+  projectionYears
 }: {
   hasChanges: boolean;
   bioAgeDelta: number;
   currentBioAge: number;
   simulatedBioAge: number;
+  projectionYears: number;
 }) {
   const [animatedDelta, setAnimatedDelta] = useState(0);
   const better = bioAgeDelta < 0;
@@ -399,7 +450,9 @@ function BiologicalImpactCard({
 
   return (
     <article className="flex min-h-[16rem] flex-col justify-center rounded-[1.5rem] border border-black/10 bg-white/85 p-7 text-center shadow-[0_18px_70px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-white/[0.07] dark:shadow-none">
-      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Biological age impact</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">
+        {projectionYears}-year biological impact
+      </p>
       {hasChanges ? (
         <>
           <motion.p
@@ -411,7 +464,7 @@ function BiologicalImpactCard({
             {Math.abs(animatedDelta)}
           </motion.p>
           <p className="mt-4 text-sm text-slate-500 dark:text-slate-500">
-            Projected age {simulatedBioAge} instead of {currentBioAge}
+            Projected biological age {simulatedBioAge} instead of {currentBioAge}
           </p>
         </>
       ) : (
@@ -455,6 +508,19 @@ function RiskBar({ value, valueTone, barTone }: { value: number; valueTone: stri
       <span className={`w-8 text-right font-mono text-xs ${valueTone}`}>{value}</span>
     </div>
   );
+}
+
+function projectFuture(realAge: number, biologicalAge: number, risks: RiskScores, years: number) {
+  const currentScore = 100 - risks.overall;
+  const riskDrag = Math.max(-0.1, Math.min(0.42, (risks.overall - 34) / 110));
+  const acceleratedYears = Math.round(years * riskDrag);
+  const healthScore = Math.round(Math.max(14, Math.min(96, currentScore - years * Math.max(0, risks.overall - 40) / 52)));
+
+  return {
+    chronologicalAge: realAge + years,
+    biologicalAge: Math.max(realAge + years - 4, biologicalAge + years + acceleratedYears),
+    healthScore
+  };
 }
 
 function TwinReactionCard({ loading, reaction }: { loading: boolean; reaction: string }) {
