@@ -29,7 +29,7 @@ function SceneSetup() {
   useEffect(() => {
     scene.background = new THREE.Color('#e2e1e0');
     gl.toneMapping = THREE.ACESFilmicToneMapping;
-    gl.outputEncoding = (THREE as any).sRGBEncoding;
+    gl.outputColorSpace = THREE.SRGBColorSpace;
     gl.toneMappingExposure = 1.4;
   }, [scene, gl]);
   return null;
