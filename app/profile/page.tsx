@@ -104,7 +104,7 @@ export default function ProfilePage() {
             <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <label className="group relative mb-6 inline-flex h-16 w-16 cursor-pointer">
-                  <span className="flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-twin/30 bg-twin/10 transition group-hover:border-twin/60">
+                  <span className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-full border border-twin/30 bg-twin/10 transition group-hover:border-twin/60">
                     {profilePhotoDataUrl ? (
                       <Image src={profilePhotoDataUrl} alt={`${draft.name} profile`} fill unoptimized className="object-cover" />
                     ) : (

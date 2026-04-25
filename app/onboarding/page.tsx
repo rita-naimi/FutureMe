@@ -510,11 +510,11 @@ export default function OnboardingPage() {
       {step.id === 'photo' ? (
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-twin/25 bg-twin/10">
+            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full border border-twin/25 bg-twin/10">
               {profilePhotoDataUrl ? (
                 <Image src={profilePhotoDataUrl} alt="Profile preview" fill unoptimized className="object-cover" />
               ) : (
-                <span className="text-xs text-slate-500">No photo</span>
+                <span className="flex h-full w-full items-center justify-center text-xs text-slate-500">No photo</span>
               )}
             </div>
             <div>
