@@ -16,6 +16,7 @@ export async function runPipelineFromClient(params: {
   enableLlmSummary?: boolean;
   enableLocalRagCache?: boolean;
   kNearest?: number;
+  clinicalMarkers?: PipelineRequest['clinicalMarkers'];
 }): Promise<PipelineResponse> {
   const payload: PipelineRequest = {
     inputs: params.inputs,
@@ -24,7 +25,8 @@ export async function runPipelineFromClient(params: {
     includePubMed: params.includePubMed ?? true,
     pubMedMaxArticles: 3,
     enableLlmSummary: params.enableLlmSummary ?? true,
-    enableLocalRagCache: params.enableLocalRagCache ?? true
+    enableLocalRagCache: params.enableLocalRagCache ?? true,
+    clinicalMarkers: params.clinicalMarkers
   };
 
   const response = await fetch('/api/pipeline', {

@@ -12,8 +12,8 @@ import { SliderQuestion } from '@/components/onboarding/SliderQuestion';
 import { CheckboxQuestion } from '@/components/onboarding/CheckboxQuestion';
 import { STEPS } from '@/components/onboarding/steps';
 import { runPipelineFromClient } from '@/lib/backend/client';
-import type { PipelineResponse } from '@/lib/backend/types';
-import type { TwinProfile } from '@/lib/fhir';
+import type { ClinicalMarkers, PipelineResponse } from '@/lib/backend/types';
+import type { HealthInputs, TwinProfile } from '@/lib/fhir';
 import { createTwinProfile } from '@/lib/profile';
 import { useFutureMeStore } from '@/lib/store';
 
@@ -55,9 +55,57 @@ const defaults: OnboardingValues = {
   existingConditions: []
 };
 
+type AppleHealthImportPayload = {
+  inputs?: Partial<Record<keyof OnboardingValues, unknown>>;
+  clinicalMarkers?: {
+    totalCholesterolMgDl?: number | null;
+    hdlMgDl?: number | null;
+    systolicBloodPressureMmHg?: number | null;
+    onBloodPressureTreatment?: boolean | null;
+    hasDiabetes?: boolean | null;
+  };
+  missing?: string[];
+};
+
+function isOnboardingField(value: string): value is keyof OnboardingValues {
+  return value in defaults;
+}
+
+function normalizeClinicalMarkers(markers: AppleHealthImportPayload['clinicalMarkers']): ClinicalMarkers | undefined {
+  if (!markers) return undefined;
+
+  const output: ClinicalMarkers = {};
+
+  if (typeof markers.totalCholesterolMgDl === 'number') output.totalCholesterolMgDl = markers.totalCholesterolMgDl;
+  if (typeof markers.hdlMgDl === 'number') output.hdlMgDl = markers.hdlMgDl;
+  if (typeof markers.systolicBloodPressureMmHg === 'number') output.systolicBloodPressureMmHg = markers.systolicBloodPressureMmHg;
+  if (typeof markers.onBloodPressureTreatment === 'boolean') output.onBloodPressureTreatment = markers.onBloodPressureTreatment;
+  if (typeof markers.hasDiabetes === 'boolean') output.hasDiabetes = markers.hasDiabetes;
+
+  return Object.keys(output).length > 0 ? output : undefined;
+}
+
+function deriveMissingFields(payload: AppleHealthImportPayload): Array<keyof OnboardingValues> {
+  if (Array.isArray(payload.missing) && payload.missing.length > 0) {
+    return payload.missing.filter(isOnboardingField);
+  }
+
+  const inputs = payload.inputs ?? {};
+  const missing: Array<keyof OnboardingValues> = [];
+
+  for (const [key, value] of Object.entries(inputs)) {
+    if (!isOnboardingField(key)) continue;
+    if (value === null || value === undefined) missing.push(key);
+  }
+
+  return missing;
+}
+
 export default function OnboardingPage() {
   const useBackendPipeline = process.env.NEXT_PUBLIC_USE_PIPELINE_API === '1';
   const router = useRouter();
+  const setProfile = useFutureMeStore((state) => state.setProfile);
+  const setPipelineAnalysis = useFutureMeStore((state) => state.setPipelineAnalysis);
   const profile = useFutureMeStore((state) => state.profile);
   const [stepIndex, setStepIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
@@ -65,122 +113,15 @@ export default function OnboardingPage() {
   const [pendingProfile, setPendingProfile] = useState<TwinProfile | null>(null);
   const [pendingAnalysis, setPendingAnalysis] = useState<PipelineResponse | null>(null);
   const [profilePhotoDataUrl, setProfilePhotoDataUrl] = useState<string | null>(useFutureMeStore.getState().profilePhotoDataUrl ?? null);
-
-  const toNumberOrFallback = (value: unknown, fallback: number) => {
-    const parsed = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  };
-
-  const toNumberOrUndefined = (value: unknown) => {
-    const parsed = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(parsed) ? parsed : undefined;
-  };
-
-  const toBooleanOrFallback = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
-
-  const toStringOrFallback = (value: unknown, fallback: string) => {
-    if (typeof value !== 'string') return fallback;
-    const trimmed = value.trim();
-    return trimmed.length > 0 ? trimmed : fallback;
-  };
-
-  const toArrayOfStrings = (value: unknown, fallback: string[]) => {
-    if (!Array.isArray(value)) return fallback;
-    return value.filter((entry): entry is string => typeof entry === 'string');
-  };
-
-  const toSex = (value: unknown): HealthInputs['sex'] =>
-    value === 'male' || value === 'female' || value === 'other' ? value : defaults.sex;
-
-  const toSmokingStatus = (value: unknown): HealthInputs['smokingStatus'] =>
-    value === 'never' || value === 'former' || value === 'current' ? value : defaults.smokingStatus;
-
-  const buildInputsFromUpload = (rawInputs: WearableImportPayload['inputs']): HealthInputs => {
-    const inputs = rawInputs && typeof rawInputs === 'object' ? rawInputs : {};
-    const typedInputs = inputs as Record<string, unknown>;
-
-    return {
-      name: toStringOrFallback(typedInputs.name, 'Future You'),
-      age: toNumberOrFallback(typedInputs.age, defaults.age),
-      sex: toSex(typedInputs.sex),
-      heightCm: toNumberOrFallback(typedInputs.heightCm, defaults.heightCm),
-      weightKg: toNumberOrFallback(typedInputs.weightKg, defaults.weightKg),
-      sleepHours: toNumberOrFallback(typedInputs.sleepHours, defaults.sleepHours),
-      exerciseDaysPerWeek: toNumberOrFallback(typedInputs.exerciseDaysPerWeek, defaults.exerciseDaysPerWeek),
-      dietQuality: toNumberOrFallback(typedInputs.dietQuality, defaults.dietQuality),
-      stressLevel: toNumberOrFallback(typedInputs.stressLevel, defaults.stressLevel),
-      smokingStatus: toSmokingStatus(typedInputs.smokingStatus),
-      alcoholDrinksPerWeek: toNumberOrFallback(typedInputs.alcoholDrinksPerWeek, defaults.alcoholDrinksPerWeek),
-      familyHistoryHeart: toBooleanOrFallback(typedInputs.familyHistoryHeart, defaults.familyHistoryHeart),
-      familyHistoryDiabetes: toBooleanOrFallback(typedInputs.familyHistoryDiabetes, defaults.familyHistoryDiabetes),
-      familyHistoryCancer: toBooleanOrFallback(typedInputs.familyHistoryCancer, defaults.familyHistoryCancer),
-      existingConditions: toArrayOfStrings(typedInputs.existingConditions, defaults.existingConditions)
-    };
-  };
-
-  const buildClinicalMarkersFromUpload = (rawMarkers: WearableImportPayload['clinicalMarkers']) => {
-    if (!rawMarkers || typeof rawMarkers !== 'object') return undefined;
-    const markers: ClinicalMarkers = {};
-    const source = rawMarkers as Record<string, unknown>;
-
-    const totalCholesterolMgDl = toNumberOrUndefined(source.totalCholesterolMgDl);
-    const hdlMgDl = toNumberOrUndefined(source.hdlMgDl);
-    const systolicBloodPressureMmHg = toNumberOrUndefined(source.systolicBloodPressureMmHg);
-
-    if (totalCholesterolMgDl !== undefined) markers.totalCholesterolMgDl = totalCholesterolMgDl;
-    if (hdlMgDl !== undefined) markers.hdlMgDl = hdlMgDl;
-    if (systolicBloodPressureMmHg !== undefined) markers.systolicBloodPressureMmHg = systolicBloodPressureMmHg;
-
-    if (typeof source.onBloodPressureTreatment === 'boolean') {
-      markers.onBloodPressureTreatment = source.onBloodPressureTreatment;
-    }
-
-    if (typeof source.hasDiabetes === 'boolean') {
-      markers.hasDiabetes = source.hasDiabetes;
-    }
-
-    return Object.keys(markers).length > 0 ? markers : undefined;
-  };
-
-  const handleWearableImport = async (payload: WearableImportPayload) => {
-    if (submitting) return;
-    setSubmitError(null);
-    setSubmitting(true);
-
-    try {
-      const inputs = buildInputsFromUpload(payload.inputs);
-      const clinicalMarkers = buildClinicalMarkersFromUpload(payload.clinicalMarkers);
-
-      if (useBackendPipeline) {
-        const analysis = await runPipelineFromClient({
-          inputs,
-          yearsOfHistory: 5,
-          includePubMed: true,
-          enableLlmSummary: true,
-          kNearest: 3,
-          clinicalMarkers
-        });
-        setProfile(analysis.profile);
-        setPipelineAnalysis(analysis);
-      } else {
-        setProfile(createTwinProfile(inputs, 'wearable-import'));
-        setPipelineAnalysis(null);
-      }
-
-      router.push('/awakening');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Wearable import failed';
-      setSubmitError(message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  const [appleHealthMissingFields, setAppleHealthMissingFields] = useState<Array<keyof OnboardingValues> | null>(null);
+  const [uploadedClinicalMarkers, setUploadedClinicalMarkers] = useState<ClinicalMarkers | undefined>(undefined);
 
   const {
     control,
     register,
     trigger,
     getValues,
+    setValue,
     formState: { errors }
   } = useForm<OnboardingValues>({
     resolver: zodResolver(schema),
@@ -191,13 +132,96 @@ export default function OnboardingPage() {
   const step = STEPS[stepIndex];
   const isAuthStep = step.id === 'auth';
 
+  const shouldAskStep = (index: number) => {
+    const candidate = STEPS[index];
+    if (!candidate) return false;
+    if (!appleHealthMissingFields) return true;
+    if (candidate.id === 'photo' || candidate.id === 'auth') return true;
+    if (candidate.fields.length === 0) return true;
+    return candidate.fields.some((field) => appleHealthMissingFields.includes(field as keyof OnboardingValues));
+  };
+
+  const findNextStepIndex = (fromIndex: number) => {
+    for (let index = fromIndex + 1; index < STEPS.length; index += 1) {
+      if (shouldAskStep(index)) return index;
+    }
+    return STEPS.length - 1;
+  };
+
+  const findPrevStepIndex = (fromIndex: number) => {
+    for (let index = fromIndex - 1; index >= 0; index -= 1) {
+      if (shouldAskStep(index)) return index;
+    }
+    return -1;
+  };
+
+  const authStepIndex = STEPS.findIndex((item) => item.id === 'auth');
+  const lastQuestionStepIndex = (() => {
+    const maxIndex = authStepIndex > 0 ? authStepIndex - 1 : STEPS.length - 1;
+    for (let index = maxIndex; index >= 0; index -= 1) {
+      if (shouldAskStep(index)) return index;
+    }
+    return maxIndex;
+  })();
+
+  const applyAppleHealthImport = (payload: AppleHealthImportPayload) => {
+    const rawInputs = payload.inputs ?? {};
+
+    (Object.entries(rawInputs) as Array<[string, unknown]>).forEach(([key, value]) => {
+      if (!isOnboardingField(key)) return;
+      if (value === null || value === undefined) return;
+      setValue(key, value as never, { shouldValidate: false, shouldDirty: true });
+    });
+
+    const missing = deriveMissingFields(payload);
+    setAppleHealthMissingFields(missing);
+    setUploadedClinicalMarkers(normalizeClinicalMarkers(payload.clinicalMarkers));
+
+    const shouldAskWithMissing = (index: number) => {
+      const candidate = STEPS[index];
+      if (!candidate) return false;
+      if (candidate.id === 'photo' || candidate.id === 'auth') return true;
+      if (candidate.fields.length === 0) return true;
+      return candidate.fields.some((field) => missing.includes(field as keyof OnboardingValues));
+    };
+
+    let nextIndex = stepIndex;
+    if (!shouldAskWithMissing(stepIndex)) {
+      nextIndex = STEPS.length - 1;
+      for (let index = stepIndex + 1; index < STEPS.length; index += 1) {
+        if (shouldAskWithMissing(index)) {
+          nextIndex = index;
+          break;
+        }
+      }
+    }
+
+    setStepIndex(nextIndex);
+  };
+
+  const onAppleHealthFileChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as AppleHealthImportPayload;
+      applyAppleHealthImport(parsed);
+      setSubmitError(null);
+    } catch {
+      setSubmitError('Apple Health import must be a valid JSON file generated by the parser script.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   const next = async () => {
     if (submitting || isAuthStep) return;
     const valid = step.optional ? true : await trigger(step.fields);
     if (!valid) return;
 
-    if (stepIndex < STEPS.length - 2) {
-      setStepIndex((current) => current + 1);
+    if (stepIndex < lastQuestionStepIndex) {
+      setStepIndex(findNextStepIndex(stepIndex));
       return;
     }
 
@@ -215,7 +239,8 @@ export default function OnboardingPage() {
           yearsOfHistory: 5,
           includePubMed: true,
           enableLlmSummary: true,
-          kNearest: 3
+          kNearest: 3,
+          clinicalMarkers: uploadedClinicalMarkers
         });
         nextProfile = analysis.profile;
         nextAnalysis = analysis;
@@ -231,7 +256,7 @@ export default function OnboardingPage() {
     setPendingProfile(nextProfile);
     setPendingAnalysis(nextAnalysis);
     setSubmitting(false);
-    setStepIndex(STEPS.length - 1);
+    setStepIndex(authStepIndex === -1 ? STEPS.length - 1 : authStepIndex);
   };
 
   const onPhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -265,8 +290,8 @@ export default function OnboardingPage() {
       subtitle={step.subtitle}
       insight={step.insight}
       onNext={next}
-      onBack={stepIndex > 0 ? () => setStepIndex((current) => current - 1) : undefined}
-      nextLabel={stepIndex === STEPS.length - 2 ? (submitting ? 'Preparing...' : 'Continue') : 'Continue'}
+      onBack={findPrevStepIndex(stepIndex) !== -1 ? () => setStepIndex(findPrevStepIndex(stepIndex)) : undefined}
+      nextLabel={stepIndex === lastQuestionStepIndex ? (submitting ? 'Preparing...' : 'Continue') : 'Continue'}
       hideNext={isAuthStep}
       exitHref="/"
       exitLabel="Leave onboarding"
@@ -275,6 +300,22 @@ export default function OnboardingPage() {
 
       {step.id === 'name' ? (
         <div className="space-y-4">
+          <div className="rounded-2xl border border-twin/20 bg-twin/5 p-4">
+            <p className="text-sm font-medium text-white">Apple Health import (optional)</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
+              Upload the JSON generated by scripts/parse-apple-health.mjs. We will prefill available data and ask only missing fields.
+            </p>
+            <label className="mt-3 inline-flex cursor-pointer items-center justify-center rounded-full border border-white/15 px-4 py-2 text-xs font-medium text-slate-200 transition hover:border-twin/50 hover:text-white">
+              Upload Apple Health JSON
+              <input type="file" accept="application/json" className="hidden" onChange={onAppleHealthFileChange} />
+            </label>
+            {appleHealthMissingFields ? (
+              <p className="mt-3 text-xs text-slate-300">
+                Import applied. Missing fields to complete: {appleHealthMissingFields.length > 0 ? appleHealthMissingFields.join(', ') : 'none'}.
+              </p>
+            ) : null}
+          </div>
+
           <label className="block">
             <span className="text-sm text-slate-400">Name</span>
             <input
