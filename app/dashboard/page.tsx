@@ -105,34 +105,36 @@ export default function DashboardPage() {
     <main className="min-h-screen overflow-hidden bg-gradient-to-b from-ivory to-ivory-dark px-5 pb-32 pt-16 dark:bg-navy-950 dark:bg-none sm:px-8 lg:px-10">
       <PageTransition>
         <div className="mx-auto max-w-7xl space-y-6">
-          <div className="flex gap-6">
-            <section className={`${CARD} relative min-w-0 flex-1 overflow-hidden p-5 sm:p-6 lg:p-7`}>
-              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-twin-dark/10 dark:bg-twin/10 lg:-right-20 lg:-top-20 lg:h-72 lg:w-72" />
-              <div className="pointer-events-none absolute bottom-0 left-1/2 hidden h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-twin-dark/35 to-transparent dark:via-twin/40 lg:block" />
-              <div className="relative grid gap-5 sm:grid-cols-[1fr_auto] sm:items-center lg:grid-cols-[minmax(0,1fr)_14rem]">
-                <div>
-                  <h1 className="max-w-4xl font-display text-3xl font-bold leading-tight text-slate-950 dark:text-slate-100 lg:text-5xl">
-                    {getGreeting()}, {dashboard.activeInputs.name}.
-                    <span className="block">This is your body today.</span>
-                  </h1>
-                  <p className="mt-4 max-w-2xl text-base font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                    {getHeroSubtitle(dashboard.biologicalAge, dashboard.activeInputs.age, dashboard.healthScore)}
-                  </p>
-                </div>
-                <HealthScoreRing score={dashboard.healthScore} />
-              </div>
-            </section>
+          <section className={`${CARD} relative flex items-center gap-6 overflow-hidden p-5 sm:p-6 lg:p-7`}>
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-twin-dark/10 dark:bg-twin/10 lg:-right-20 lg:-top-20 lg:h-72 lg:w-72" />
+            <div className="pointer-events-none absolute bottom-0 left-1/2 hidden h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-twin-dark/35 to-transparent dark:via-twin/40 lg:block" />
 
-            <div className="w-52 flex-shrink-0 overflow-hidden rounded-[1.65rem] lg:w-64">
+            <div className="relative flex min-w-0 flex-1 items-center gap-5">
+              <div className="min-w-0 flex-1">
+                <h1 className="max-w-4xl font-display text-4xl font-bold leading-tight text-slate-950 dark:text-slate-100 lg:text-5xl">
+                  {getGreeting()}, {dashboard.activeInputs.name}.
+                  <span className="block">This is your body today.</span>
+                </h1>
+                <p className="mt-4 max-w-2xl text-base font-medium leading-relaxed text-slate-500 dark:text-slate-400">
+                  {getHeroSubtitle(dashboard.biologicalAge, dashboard.activeInputs.age, dashboard.healthScore)}
+                </p>
+              </div>
+
+              <HealthScoreRing score={dashboard.healthScore} />
+            </div>
+
+            <div className="-my-5 h-auto w-36 flex-shrink-0 self-stretch overflow-hidden rounded-full sm:-my-6 lg:-my-7 lg:w-44">
               <TwinAvatarViewer
                 inputs={dashboard.activeInputs}
                 biologicalAge={dashboard.biologicalAge}
                 healthScore={dashboard.healthScore}
                 interactive={false}
                 height="100%"
+                minimal
+                transparent
               />
             </div>
-          </div>
+          </section>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(22rem,0.82fr)_minmax(0,1.45fr)]">
             <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
@@ -224,7 +226,7 @@ function HealthScoreRing({ score }: { score: number }) {
   const progress = useMotionValue(0);
   const rounded = useTransform(progress, Math.round);
   const circumference = 2 * Math.PI * 54;
-  const offset = useTransform(progress, (latest) => circumference * (1 - latest / 100));
+  const offset = useTransform(progress, (v) => circumference * (1 - v / 100));
   const color = getScoreColor(score);
 
   useEffect(() => {
@@ -233,35 +235,14 @@ function HealthScoreRing({ score }: { score: number }) {
   }, [progress, score]);
 
   return (
-    <div className="mx-auto flex w-36 flex-col items-center sm:mx-0 lg:w-44">
-      <div className="relative h-32 w-32 lg:h-40 lg:w-40">
-        <svg className="-rotate-90" viewBox="0 0 128 128">
-          <circle
-            cx="64"
-            cy="64"
-            r="54"
-            fill="none"
-            stroke="rgba(100,116,139,0.18)"
-            strokeWidth="10"
-          />
-          <motion.circle
-            cx="64"
-            cy="64"
-            r="54"
-            fill="none"
-            stroke={color}
-            strokeLinecap="round"
-            strokeWidth="10"
-            strokeDasharray={circumference}
-            style={{ strokeDashoffset: offset }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span className="font-display text-4xl font-bold tabular-nums text-slate-950 dark:text-white lg:text-5xl">
-            {rounded}
-          </motion.span>
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-500">Health score</span>
-        </div>
+    <div className="relative h-32 w-32 flex-shrink-0 lg:h-40 lg:w-40">
+      <svg className="-rotate-90 h-full w-full" viewBox="0 0 128 128">
+        <circle cx="64" cy="64" r="54" fill="none" stroke="rgba(100,116,139,0.18)" strokeWidth="10" />
+        <motion.circle cx="64" cy="64" r="54" fill="none" stroke={color} strokeLinecap="round" strokeWidth="10" strokeDasharray={circumference} style={{ strokeDashoffset: offset }} />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <motion.span className="font-display text-4xl font-bold tabular-nums text-slate-950 dark:text-white lg:text-5xl">{rounded}</motion.span>
+        <span className="text-xs font-medium text-slate-500">Health score</span>
       </div>
     </div>
   );
@@ -541,12 +522,12 @@ function ProjectionTooltip({
 function getHeroSubtitle(bioAge: number, realAge: number, healthScore: number): string {
   const delta = Math.round(Math.abs(bioAge - realAge));
   if (bioAge > realAge + 2)
-    return `Your body is ${delta} year${delta !== 1 ? 's' : ''} older than you are. Every habit you change today turns that around.`;
+    return `Your body is already ${delta} year${delta !== 1 ? 's' : ''} older than you are. You can reverse that — and this is where it starts.`;
   if (bioAge < realAge - 2)
-    return `You're biologically ${delta} year${delta !== 1 ? 's' : ''} younger than your age. You're doing something right — let's protect it.`;
+    return `You've gained ${delta} biological year${delta !== 1 ? 's' : ''} on your age. Now let's see how far you can push that lead.`;
   if (healthScore >= 75)
-    return `Your biological age matches your real age. Strong foundation — now let's push it further.`;
-  return `Small daily changes compound into years of healthy life. Here's where to start.`;
+    return `Your body is in balance. Change one habit today and watch your future self shift in real time.`;
+  return `Your future health is being written right now. Start one change — and see your twin respond.`;
 }
 
 function getGreeting() {

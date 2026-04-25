@@ -35,14 +35,14 @@ function pickAnnyUrl(inputs?: HealthInputs, biologicalAge?: number): string {
 
 const BG = '#eceae6';
 
-function SceneSetup() {
+function SceneSetup({ transparent }: { transparent: boolean }) {
   const { scene, gl } = useThree();
   useEffect(() => {
-    scene.background = new THREE.Color(BG);
+    scene.background = transparent ? null : new THREE.Color(BG);
     gl.toneMapping = THREE.ACESFilmicToneMapping;
     gl.outputColorSpace = THREE.SRGBColorSpace;
     gl.toneMappingExposure = 1.1;
-  }, [scene, gl]);
+  }, [scene, gl, transparent]);
   return null;
 }
 
@@ -84,6 +84,8 @@ interface TwinAvatarViewerProps {
   gender?: string; // legacy prop, sex is read from inputs.sex
   interactive?: boolean;
   height?: number | string;
+  minimal?: boolean;
+  transparent?: boolean;
 }
 
 export default function TwinAvatarViewer({
@@ -92,6 +94,8 @@ export default function TwinAvatarViewer({
   biologicalAge,
   interactive = true,
   height = 460,
+  minimal = false,
+  transparent = false,
 }: TwinAvatarViewerProps) {
   const vs = getVisualState(healthScore);
   const url = useMemo(() => pickAnnyUrl(inputs, biologicalAge), [inputs, biologicalAge]);
@@ -117,17 +121,17 @@ export default function TwinAvatarViewer({
     <div style={{
       width: '100%',
       height,
-      borderRadius: 16,
+      borderRadius: transparent ? 0 : 16,
       overflow: 'hidden',
       position: 'relative',
-      background: BG,
+      background: transparent ? 'transparent' : BG,
       filter: cssFilter,
     }}>
       <Canvas
         camera={{ position: [0, -0.1, 3.5], fov: 42 }}
-        gl={{ antialias: true }}
+        gl={{ antialias: true, alpha: transparent }}
       >
-        <SceneSetup />
+        <SceneSetup transparent={transparent} />
         <ambientLight intensity={0.75} color="#fff8f2" />
         <directionalLight position={[1.5, 3, 2.5]} intensity={vs.lightInt} color="#fff8f0" castShadow />
         <directionalLight position={[-2, 0.5, -1.5]} intensity={0.55} color="#c8dff0" />
@@ -148,26 +152,30 @@ export default function TwinAvatarViewer({
         />
       </Canvas>
 
-      <div style={{
-        position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-        background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(8px)',
-        border: `1px solid ${col}66`, borderRadius: 20,
-        padding: '4px 14px', color: col, fontSize: 11, fontWeight: 700,
-        whiteSpace: 'nowrap', pointerEvents: 'none',
-      }}>
-        {label}
-      </div>
-
-      <div style={{
-        position: 'absolute', bottom: 12, left: 16, right: 16,
-        height: 3, background: 'rgba(0,0,0,0.1)', borderRadius: 2,
-      }}>
+      {!minimal && (
         <div style={{
-          height: '100%', width: `${healthScore}%`,
-          background: `linear-gradient(90deg, ${col}, ${col}88)`,
-          borderRadius: 2, transition: 'width 0.8s ease',
-        }} />
-      </div>
+          position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+          background: 'rgba(255,255,255,0.72)', backdropFilter: 'blur(8px)',
+          border: `1px solid ${col}66`, borderRadius: 20,
+          padding: '4px 14px', color: col, fontSize: 11, fontWeight: 700,
+          whiteSpace: 'nowrap', pointerEvents: 'none',
+        }}>
+          {label}
+        </div>
+      )}
+
+      {!minimal && (
+        <div style={{
+          position: 'absolute', bottom: 12, left: 16, right: 16,
+          height: 3, background: 'rgba(0,0,0,0.1)', borderRadius: 2,
+        }}>
+          <div style={{
+            height: '100%', width: `${healthScore}%`,
+            background: `linear-gradient(90deg, ${col}, ${col}88)`,
+            borderRadius: 2, transition: 'width 0.8s ease',
+          }} />
+        </div>
+      )}
     </div>
   );
 }
