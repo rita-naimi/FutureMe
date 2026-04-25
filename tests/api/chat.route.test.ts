@@ -36,38 +36,45 @@ Exact facts for factual questions:
 describe('POST /api/chat', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    delete process.env.HUGGINGFACE_API_KEY;
-    delete process.env.HF_TOKEN;
-    delete process.env.HF_MODEL;
-    delete process.env.HF_CHAT_MODEL;
-    delete process.env.HF_CHAT_MAX_TOKENS;
+    delete process.env.ANTHROPIC_API_KEY;
+    delete process.env.ANTHROPIC_MODEL;
+    delete process.env.ANTHROPIC_CHAT_MODEL;
+    delete process.env.ANTHROPIC_CHAT_MAX_TOKENS;
   });
 
-  it('streams an open-source Hugging Face response to the client SSE format', async () => {
-    process.env.HUGGINGFACE_API_KEY = 'test-token';
-    process.env.HF_CHAT_MODEL = 'test/open-source-model';
-    process.env.HF_CHAT_MAX_TOKENS = '1200';
+  it('streams an Anthropic response to the client SSE format', async () => {
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    process.env.ANTHROPIC_CHAT_MODEL = 'test-sonnet-model';
+    process.env.ANTHROPIC_CHAT_MAX_TOKENS = '650';
 
-    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      expect(String(input)).toBe('https://api.anthropic.com/v1/messages');
+      expect((init?.headers as Record<string, string>)['x-api-key']).toBe('test-key');
       const body = JSON.parse(String(init?.body)) as {
         model: string;
         max_tokens: number;
+        system: string;
         stream: boolean;
         messages: Array<{ role: string; content: string }>;
       };
 
-      expect(body.model).toBe('test/open-source-model');
-      expect(body.max_tokens).toBe(1200);
+      expect(body.model).toBe('test-sonnet-model');
+      expect(body.max_tokens).toBe(650);
       expect(body.stream).toBe(true);
-      expect(body.messages[0]).toEqual({ role: 'system', content: SYSTEM_PROMPT });
+      expect(body.system).toBe(SYSTEM_PROMPT);
+      expect(body.messages[0]).toEqual({ role: 'user', content: 'Bonjour' });
 
       return new Response(
         [
-          'data: {"choices":[{"delta":{"content":"Bonjour "}}]}',
+          'event: content_block_delta',
+          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Bonjour "}}',
           '',
-          'data: {"choices":[{"delta":{"content":"Tahri"}}]}',
+          'event: content_block_delta',
+          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Tahri"}}',
           '',
-          'data: [DONE]',
+          'event: message_stop',
+          'data: {"type":"message_stop"}',
+          '',
           ''
         ].join('\n'),
         { status: 200 }
@@ -82,8 +89,8 @@ describe('POST /api/chat', () => {
       })
     );
 
-    expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('huggingface');
-    expect(response.headers.get('X-FutureMe-LLM-Model')).toBe('test/open-source-model');
+    expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('anthropic');
+    expect(response.headers.get('X-FutureMe-LLM-Model')).toBe('test-sonnet-model');
     await expect(readClientSseText(response)).resolves.toBe('Bonjour Tahri');
   });
 
@@ -99,6 +106,7 @@ describe('POST /api/chat', () => {
 
     expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('fallback');
     expect(text).toContain('Mode degrade');
+    expect(text).toContain('Anthropic');
     expect(text).toContain('25 ans');
     expect(text).toContain('35');
   });

@@ -145,7 +145,7 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
 
   // ── Résumé LLM ──
   if (llm) {
-    console.log(`🤖  RÉSUMÉ LLM (${llm.provider === 'huggingface' ? `HuggingFace ${llm.model}` : 'Fallback déterministe'})`);
+    console.log(`🤖  RÉSUMÉ LLM (${llm.provider === 'anthropic' ? `Anthropic ${llm.model}` : 'Fallback déterministe'})`);
     console.log('  ─────────────────────────────────────');
     llm.summary.split('\n').forEach(line => console.log(`  ${line}`));
     console.log();

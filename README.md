@@ -9,7 +9,7 @@ Une implementation backend a ete ajoutee pour demarrer le pipeline du guide:
 - Estimation explicite des marqueurs cliniques manquants depuis le questionnaire utilisateur
 - Calcul d'indices de sante: Framingham, ASCVD proxy, metabolic syndrome proxy, allostatic load, Life Essential 8 proxy, lifestyle score
 - Recuperation contextuelle PubMed via eUtils NCBI
-- Generation de synthese clinique via un modele open source/open-weight sur Hugging Face avec fallback local explicite
+- Generation de synthese clinique via Claude Sonnet 4 cote serveur avec fallback local explicite
 - Construction d'un prompt structure pret pour un LLM biomedical
 
 ### Endpoint
@@ -66,22 +66,22 @@ Pour activer le branchement front sur `/api/pipeline` depuis onboarding/simulate
 NEXT_PUBLIC_USE_PIPELINE_API=1
 ```
 
-### Modele LLM open source
+### Modele LLM Claude
 
-Par defaut, le backend utilise Hugging Face Inference Providers avec `openai/gpt-oss-120b:fastest`.
+Par defaut, le backend utilise Anthropic avec `claude-sonnet-4-6`. La cle API reste cote serveur et ne doit jamais etre exposee avec un prefixe `NEXT_PUBLIC_`.
 
 Variables utiles:
 
 ```bash
-HUGGINGFACE_API_KEY=hf_xxxxx
-HF_MODEL=openai/gpt-oss-120b:fastest
-HF_CHAT_MODEL=openai/gpt-oss-120b:fastest
-HF_CLINICAL_MODEL=openai/gpt-oss-120b:fastest
-HF_CHAT_MAX_TOKENS=900
-HF_CLINICAL_MAX_TOKENS=1100
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-sonnet-4-6
+ANTHROPIC_CHAT_MODEL=claude-sonnet-4-6
+ANTHROPIC_CLINICAL_MODEL=claude-sonnet-4-6
+ANTHROPIC_CHAT_MAX_TOKENS=700
+ANTHROPIC_CLINICAL_MAX_TOKENS=900
 ```
 
-`HF_CHAT_MODEL` controle le chat `/api/chat`; `HF_CLINICAL_MODEL` controle la synthese `/api/pipeline`. Si le modele live n'est pas disponible, l'application affiche explicitement le fallback local au lieu de masquer l'erreur.
+`ANTHROPIC_CHAT_MODEL` controle le chat `/api/chat`; `ANTHROPIC_CLINICAL_MODEL` controle la synthese `/api/pipeline`. Les plafonds `MAX_TOKENS` limitent la longueur des sorties pour garder la consommation de credits raisonnable. Si Claude n'est pas disponible ou si la cle manque de credit, l'application affiche explicitement le fallback local au lieu de masquer l'erreur.
 
 ### Tests
 

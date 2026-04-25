@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 /**
  * ============================================================
- *  CHAT LIVE avec un modele open source Hugging Face — FutureMe
+ *  CHAT LIVE avec Claude Sonnet 4 — FutureMe
  *
  *  Usage :
  *    1. Démarre le serveur Next.js dans un autre terminal :
  *         npm run dev
- *    2. Exporte ta clé HuggingFace :
- *         export HUGGINGFACE_API_KEY=hf_xxxxx
+ *    2. Configure ta cle Anthropic cote serveur :
+ *         export ANTHROPIC_API_KEY=sk-ant-...
  *    3. Modifie MES_DONNEES ci-dessous
  *    4. Lance :
  *         node scripts/chat.mjs
@@ -52,8 +52,8 @@ const MES_DONNEES = {
 };
 
 const PIPELINE_URL = process.env.PIPELINE_URL || 'http://localhost:3000/api/pipeline';
-const MODEL_ID = process.env.HF_CHAT_MODEL || process.env.HF_MODEL || 'openai/gpt-oss-120b:fastest';
-const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
+const MODEL_ID = process.env.ANTHROPIC_CHAT_MODEL || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
+const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 
 // ─── couleurs ANSI ──────────────────────────────────────────
 const C = {
@@ -62,13 +62,6 @@ const C = {
   yellow: '\x1b[33m', red: '\x1b[31m', gray: '\x1b[90m'
 };
 function log(color, ...args) { console.log(color + args.join(' ') + C.reset); }
-
-// ─── vérifs préalables ──────────────────────────────────────
-if (!process.env.HUGGINGFACE_API_KEY) {
-  log(C.red, '❌ HUGGINGFACE_API_KEY manquant. Exporte-le d\'abord :');
-  log(C.dim, '   export HUGGINGFACE_API_KEY=hf_xxxxxxxxxxxxx');
-  process.exit(1);
-}
 
 // ─── 1. lance le pipeline pour obtenir le contexte twin ─────
 async function runPipeline() {
@@ -135,24 +128,24 @@ Consignes :
 - 3 à 6 phrases max sauf demande explicite`;
 }
 
-// ─── 3. appel HuggingFace via Inference Providers (OpenAI-compatible) ──
-async function callHuggingFaceStreaming(systemPrompt, history, userMsg, onToken) {
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...history,
-    { role: 'user', content: userMsg }
-  ];
+// ─── 3. appel Anthropic Messages API ───────────────────────
+async function callAnthropicStreaming(systemPrompt, history, userMsg, onToken) {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY manquant');
+  }
 
-  const res = await fetch(HF_URL, {
+  const res = await fetch(ANTHROPIC_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       model: MODEL_ID,
-      messages,
-      max_tokens: 600,
+      max_tokens: Number(process.env.ANTHROPIC_CHAT_MAX_TOKENS || 700),
+      system: systemPrompt,
+      messages: [...history, { role: 'user', content: userMsg }],
       temperature: 0.3,
       stream: true
     })
@@ -160,7 +153,7 @@ async function callHuggingFaceStreaming(systemPrompt, history, userMsg, onToken)
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`HF ${res.status}: ${text.slice(0, 300)}`);
+    throw new Error(`Anthropic ${res.status}: ${text.slice(0, 300)}`);
   }
 
   const reader = res.body.getReader();
@@ -172,15 +165,14 @@ async function callHuggingFaceStreaming(systemPrompt, history, userMsg, onToken)
     const { value, done } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue;
-      const payload = line.slice(5).trim();
-      if (!payload || payload === '[DONE]') continue;
+    const events = buffer.split('\n\n');
+    buffer = events.pop() || '';
+    for (const event of events) {
+      const payload = event.split('\n').find((line) => line.startsWith('data: '))?.slice(6).trim();
+      if (!payload) continue;
       try {
         const json = JSON.parse(payload);
-        const delta = json.choices?.[0]?.delta?.content;
+        const delta = json.type === 'content_block_delta' ? json.delta?.text : null;
         if (delta) { onToken(delta); full += delta; }
       } catch { /* ignore */ }
     }
@@ -233,7 +225,7 @@ async function chat(systemPrompt, pipelineSnapshot) {
     process.stdout.write(C.magenta + 'futur> ' + C.reset);
 
     try {
-      const fullText = await callHuggingFaceStreaming(systemPrompt, history, userMsg, (tok) => {
+      const fullText = await callAnthropicStreaming(systemPrompt, history, userMsg, (tok) => {
         process.stdout.write(tok);
       });
       process.stdout.write('\n\n');
@@ -241,9 +233,7 @@ async function chat(systemPrompt, pipelineSnapshot) {
       history.push({ role: 'assistant', content: fullText.trim() });
     } catch (err) {
       log(C.red, `\n  ❌ ${err.message}`);
-      if (err.message.includes('503') || err.message.includes('loading')) {
-        log(C.yellow, '  💤 Le modele open source est en train de se charger sur HF (cold start), réessaie dans 30s.');
-      }
+      log(C.yellow, '  Verifie ANTHROPIC_API_KEY et le credit disponible dans le compte Anthropic.');
       console.log();
     }
   }

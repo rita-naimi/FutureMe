@@ -60,7 +60,7 @@ export interface PubMedArticle {
 export interface LlmOutput {
   model: string;
   summary: string;
-  provider: 'huggingface' | 'fallback';
+  provider: 'anthropic' | 'fallback';
 }
 
 export interface PromptPayload {

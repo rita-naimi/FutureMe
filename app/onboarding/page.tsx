@@ -350,7 +350,7 @@ export default function OnboardingPage() {
               <span>
                 <span className="block font-semibold text-white">Import Apple Health XML</span>
                 <span className="mt-1 block text-sm leading-relaxed text-slate-400">
-                  Upload your export.xml file. We'll prefill what we can and ask only for the rest.
+                  Upload your export.xml file. We&apos;ll prefill what we can and ask only for the rest.
                 </span>
               </span>
               <input
@@ -415,7 +415,7 @@ export default function OnboardingPage() {
             <CheckCircle className="h-12 w-12 text-twin" />
             <h1 className="text-3xl font-bold text-white">Import successful</h1>
             <p className="text-base leading-relaxed text-slate-400">
-              Here's what we found in your Apple Health data.
+              Here&apos;s what we found in your Apple Health data.
               {missingKeys.length > 0 ? " We'll ask for the rest." : ' Your profile is ready.'}
             </p>
           </div>

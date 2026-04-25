@@ -12,7 +12,7 @@ function buildRequest(body: unknown) {
   });
 }
 
-function mockPubMedAndHf() {
+function mockPubMedAndAnthropic() {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
 
@@ -49,14 +49,15 @@ function mockPubMedAndHf() {
       );
     }
 
-    if (url.includes('router.huggingface.co/v1/chat/completions')) {
-      const body = JSON.parse(String(init?.body)) as { model: string; max_tokens: number };
-      expect(body.model).toBe('openai/gpt-oss-120b:fastest');
-      expect(body.max_tokens).toBe(1100);
+    if (url.includes('api.anthropic.com/v1/messages')) {
+      const body = JSON.parse(String(init?.body)) as { model: string; max_tokens: number; stream: boolean };
+      expect(body.model).toBe('claude-sonnet-4-6');
+      expect(body.max_tokens).toBe(900);
+      expect(body.stream).toBe(false);
 
       return new Response(
         JSON.stringify({
-          choices: [{ message: { role: 'assistant', content: 'Synthese clinique testee.' } }]
+          content: [{ type: 'text', text: 'Synthese clinique testee.' }]
         }),
         { status: 200 }
       );
@@ -74,10 +75,10 @@ describe('POST /api/pipeline', () => {
     vi.restoreAllMocks();
     process.env.PUBMED_CACHE_FILE = '/tmp/futureme-pubmed-test-cache.json';
     resetPubMedCacheForTests();
-    process.env.HUGGINGFACE_API_KEY = 'test-token';
-    delete process.env.HF_MODEL;
-    delete process.env.HF_CLINICAL_MODEL;
-    delete process.env.HF_CLINICAL_MAX_TOKENS;
+    process.env.ANTHROPIC_API_KEY = 'test-key';
+    delete process.env.ANTHROPIC_MODEL;
+    delete process.env.ANTHROPIC_CLINICAL_MODEL;
+    delete process.env.ANTHROPIC_CLINICAL_MAX_TOKENS;
     process.env.PUBMED_CACHE_TTL_HOURS = '24';
   });
 
@@ -86,8 +87,8 @@ describe('POST /api/pipeline', () => {
     expect(response.status).toBe(400);
   });
 
-  it('returns pipeline data with mocked PubMed and HuggingFace', async () => {
-    const fetchMock = mockPubMedAndHf();
+  it('returns pipeline data with mocked PubMed and Anthropic', async () => {
+    const fetchMock = mockPubMedAndAnthropic();
 
     const response = await POST(
       buildRequest({
@@ -110,13 +111,13 @@ describe('POST /api/pipeline', () => {
 
     expect(payload.pubmed.articles).toHaveLength(1);
     expect(payload.pubmed.articles[0].pmid).toBe('12345');
-    expect(payload.llm?.provider).toBe('huggingface');
+    expect(payload.llm?.provider).toBe('anthropic');
     expect(payload.llm?.summary).toContain('Synthese clinique');
     expect(fetchMock).toHaveBeenCalled();
   });
 
   it('uses local RAG cache to avoid repeated PubMed calls', async () => {
-    const fetchMock = mockPubMedAndHf();
+    const fetchMock = mockPubMedAndAnthropic();
 
     const requestBody = {
       inputs: HIGH_RISK_PROFILE,

@@ -1,9 +1,9 @@
 import type { HealthInputs } from '@/lib/fhir';
 import {
-  generateHuggingFaceChatText,
-  getConfiguredHuggingFaceModel,
+  generateAnthropicText,
+  getConfiguredAnthropicModel,
   getPositiveNumberFromEnv
-} from './huggingface';
+} from './anthropic';
 import type { LlmOutput, PromptPayload, PubMedArticle, RiskEvidence } from './types';
 
 function buildPubMedSection(articles: PubMedArticle[]) {
@@ -33,15 +33,13 @@ function buildUserMessage(prompt: PromptPayload, articles: PubMedArticle[]) {
   ].join('\n');
 }
 
-async function generateWithHuggingFace(systemMsg: string, userMsg: string, model: string): Promise<string> {
-  return generateHuggingFaceChatText({
+async function generateWithAnthropic(systemMsg: string, userMsg: string, model: string): Promise<string> {
+  return generateAnthropicText({
     model,
-    messages: [
-      { role: 'system', content: systemMsg },
-      { role: 'user', content: userMsg }
-    ],
-    maxTokens: getPositiveNumberFromEnv('HF_CLINICAL_MAX_TOKENS', 1100),
-    temperature: getPositiveNumberFromEnv('HF_CLINICAL_TEMPERATURE', 0.2)
+    system: systemMsg,
+    messages: [{ role: 'user', content: userMsg }],
+    maxTokens: getPositiveNumberFromEnv('ANTHROPIC_CLINICAL_MAX_TOKENS', 900),
+    temperature: getPositiveNumberFromEnv('ANTHROPIC_CLINICAL_TEMPERATURE', 0.2)
   });
 }
 
@@ -68,14 +66,14 @@ export async function generateClinicalSummary(params: {
   pubmedArticles: PubMedArticle[];
 }): Promise<LlmOutput> {
   const userMsg = buildUserMessage(params.prompt, params.pubmedArticles);
-  const model = getConfiguredHuggingFaceModel('HF_CLINICAL_MODEL', 'HF_MODEL');
+  const model = getConfiguredAnthropicModel('ANTHROPIC_CLINICAL_MODEL', 'ANTHROPIC_MODEL');
 
   try {
-    const summary = await generateWithHuggingFace(params.prompt.system, userMsg, model);
+    const summary = await generateWithAnthropic(params.prompt.system, userMsg, model);
     return {
       model,
       summary,
-      provider: 'huggingface'
+      provider: 'anthropic'
     };
   } catch {
     return {

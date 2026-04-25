@@ -1,11 +1,11 @@
 import { NextRequest } from 'next/server';
 import {
-  HuggingFaceChatError,
-  fetchHuggingFaceChatCompletion,
-  getConfiguredHuggingFaceModel,
+  AnthropicChatError,
+  fetchAnthropicMessage,
+  getConfiguredAnthropicModel,
   getPositiveNumberFromEnv,
-  type HuggingFaceChatMessage
-} from '@/lib/backend/huggingface';
+  type AnthropicChatMessage
+} from '@/lib/backend/anthropic';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -15,30 +15,28 @@ export async function POST(req: NextRequest) {
     systemPrompt: string;
   };
 
-  const model = getConfiguredHuggingFaceModel('HF_CHAT_MODEL', 'HF_MODEL');
+  const model = getConfiguredAnthropicModel('ANTHROPIC_CHAT_MODEL', 'ANTHROPIC_MODEL');
 
   try {
-    const response = await fetchHuggingFaceChatCompletion({
+    const response = await fetchAnthropicMessage({
       model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages.map((message) => ({ role: message.role, content: message.content }) satisfies HuggingFaceChatMessage)
-      ],
-      maxTokens: getPositiveNumberFromEnv('HF_CHAT_MAX_TOKENS', 900),
-      temperature: getPositiveNumberFromEnv('HF_CHAT_TEMPERATURE', 0.35),
+      system: systemPrompt,
+      messages: messages.map((message) => ({ role: message.role, content: message.content }) satisfies AnthropicChatMessage),
+      maxTokens: getPositiveNumberFromEnv('ANTHROPIC_CHAT_MAX_TOKENS', 700),
+      temperature: getPositiveNumberFromEnv('ANTHROPIC_CHAT_TEMPERATURE', 0.35),
       stream: true
     });
 
     if (!response.body) {
-      throw new HuggingFaceChatError('Hugging Face response had no stream body');
+      throw new AnthropicChatError('Anthropic response had no stream body');
     }
 
-    return new Response(transformHuggingFaceStream(response.body), {
+    return new Response(transformAnthropicStream(response.body), {
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
-        'X-FutureMe-LLM-Provider': 'huggingface',
+        'X-FutureMe-LLM-Provider': 'anthropic',
         'X-FutureMe-LLM-Model': model
       }
     });
@@ -52,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function transformHuggingFaceStream(source: ReadableStream<Uint8Array>) {
+function transformAnthropicStream(source: ReadableStream<Uint8Array>) {
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
   const reader = source.getReader();
@@ -108,17 +106,16 @@ function extractTextDelta(event: string) {
 
   for (const data of dataLines) {
     if (!data) continue;
-    if (data === '[DONE]') return '[DONE]';
 
     try {
       const parsed = JSON.parse(data) as {
-        choices?: Array<{
-          delta?: { content?: string };
-          message?: { content?: string };
-        }>;
+        type?: string;
+        delta?: { type?: string; text?: string };
       };
-      const text = parsed.choices?.[0]?.delta?.content ?? parsed.choices?.[0]?.message?.content;
-      if (text) return text;
+      if (parsed.type === 'message_stop') return '[DONE]';
+      if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
+        return parsed.delta.text ?? null;
+      }
     } catch {
       return null;
     }
@@ -164,7 +161,8 @@ function buildFallbackResponse(messages: ChatMessage[], systemPrompt: string, re
   const metabolic = matchValue(systemPrompt, /Metabolic risk: (\d+)\/100/i) ?? 'non calcule';
 
   const prefix = [
-    `Mode degrade: le modele open source ${model} n'a pas pu repondre en direct (${reason}).`,
+    `Mode degrade: Claude Sonnet (${model}) n'a pas pu repondre via Anthropic (${reason}).`,
+    'Verifie que ANTHROPIC_API_KEY est configure cote serveur et que le compte a encore du credit.',
     'Je reponds avec le fallback local, donc la reponse est volontairement courte et factuelle.'
   ];
 
@@ -196,11 +194,11 @@ function matchValue(source: string, pattern: RegExp) {
 }
 
 function getReadableError(error: unknown) {
-  if (error instanceof HuggingFaceChatError) {
+  if (error instanceof AnthropicChatError) {
     return [error.message, error.details].filter(Boolean).join(': ');
   }
   if (error instanceof Error) return error.message;
-  return 'Unknown Hugging Face error';
+  return 'Unknown Anthropic error';
 }
 
 function sanitizeHeaderValue(value: string) {
