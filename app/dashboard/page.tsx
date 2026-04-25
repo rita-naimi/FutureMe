@@ -124,36 +124,38 @@ export default function DashboardPage() {
               />
             </div>
 
-            <section className="grid grid-cols-2 gap-3 lg:gap-4 xl:col-span-8">
-              <RiskCard
-                index={0}
-                label="Cardiovascular risk"
-                value={dashboard.activeRisks.cardiovascular}
-                description="Heart, vessels, smoking, family history"
-              />
-              <RiskCard
-                index={1}
-                label="Metabolic risk"
-                value={dashboard.activeRisks.metabolic}
-                description="BMI, food quality, movement, diabetes history"
-              />
-              <RiskCard
-                index={2}
-                label="Stress load"
-                value={dashboard.activeRisks.mentalResilience}
-                description="Sleep, stress, recovery capacity"
-              />
-              <RiskCard
-                index={3}
-                label="Longevity drag"
-                value={100 - dashboard.activeRisks.longevity}
-                description="The drag against your long-term trajectory"
-              />
-            </section>
+            <div className="grid gap-5 xl:col-span-8 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.55fr)]">
+              <section className="grid grid-cols-2 gap-3">
+                <RiskCard
+                  index={0}
+                  label="Cardiovascular risk"
+                  value={dashboard.activeRisks.cardiovascular}
+                  description="Heart, vessels, smoking, family history"
+                />
+                <RiskCard
+                  index={1}
+                  label="Metabolic risk"
+                  value={dashboard.activeRisks.metabolic}
+                  description="BMI, food quality, movement, diabetes history"
+                />
+                <RiskCard
+                  index={2}
+                  label="Stress load"
+                  value={dashboard.activeRisks.mentalResilience}
+                  description="Sleep, stress, recovery capacity"
+                />
+                <RiskCard
+                  index={3}
+                  label="Longevity drag"
+                  value={100 - dashboard.activeRisks.longevity}
+                  description="The drag against your long-term trajectory"
+                />
+              </section>
 
-            <div className="grid gap-4 xl:col-span-4">
               <DailyGoalCard recommendedHabitKey={getRecommendedHabitKey(dashboard.priority.title)} />
+            </div>
 
+            <div className="xl:col-span-4">
               <section className={`${CARD} border-l-[6px] border-l-twin-dark p-5 dark:border-l-twin sm:p-6`}>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-twin-dark dark:text-twin">
                   Your highest leverage change
@@ -288,8 +290,8 @@ function RiskCard({
   }, [index, value]);
 
   return (
-    <article className={`${CARD} flex min-h-[10rem] items-center gap-4 p-4`}>
-      <div className="relative h-20 w-20 flex-shrink-0">
+    <article className={`${CARD} flex min-h-[8.25rem] items-center gap-3 p-3`}>
+      <div className="relative h-16 w-16 flex-shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart innerRadius="72%" outerRadius="100%" data={[{ value: animatedValue, fill: color }]} startAngle={220} endAngle={-40}>
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
@@ -304,12 +306,12 @@ function RiskCard({
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display text-2xl font-bold tabular-nums text-slate-950 dark:text-white">{value}</span>
+          <span className="font-display text-xl font-bold tabular-nums text-slate-950 dark:text-white">{value}</span>
         </div>
       </div>
       <div className="min-w-0 text-left">
         <p className="text-sm font-semibold leading-snug text-slate-900 dark:text-white">{label}</p>
-        <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-500">{description}</p>
+        <p className="mt-1 text-[11px] leading-snug text-slate-500 dark:text-slate-500">{description}</p>
       </div>
     </article>
   );
