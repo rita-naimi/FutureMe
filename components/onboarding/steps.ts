@@ -80,6 +80,13 @@ export const STEPS: OnboardingStep[] = [
     fields: ['familyHistoryHeart', 'familyHistoryDiabetes', 'familyHistoryCancer']
   },
   {
+    id: 'photo',
+    title: 'Add a profile picture (optional).',
+    subtitle: 'You can skip this now and add one later.',
+    fields: [],
+    optional: true
+  },
+  {
     id: 'auth',
     title: 'Create your account to save your twin.',
     subtitle: 'Your answers are ready. Save them so you can return to your profile.',

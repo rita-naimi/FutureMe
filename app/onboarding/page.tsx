@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { ChangeEvent, useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
@@ -63,6 +64,7 @@ export default function OnboardingPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pendingProfile, setPendingProfile] = useState<TwinProfile | null>(null);
   const [pendingAnalysis, setPendingAnalysis] = useState<PipelineResponse | null>(null);
+  const [profilePhotoDataUrl, setProfilePhotoDataUrl] = useState<string | null>(useFutureMeStore.getState().profilePhotoDataUrl ?? null);
 
   const {
     control,
@@ -120,6 +122,29 @@ export default function OnboardingPage() {
     setPendingAnalysis(nextAnalysis);
     setSubmitting(false);
     setStepIndex(STEPS.length - 1);
+  };
+
+  const onPhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      setProfilePhotoDataUrl(null);
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setSubmitError('Please choose an image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSubmitError(null);
+        setProfilePhotoDataUrl(reader.result);
+      }
+    };
+    reader.onerror = () => setSubmitError('Could not read that image. Try another file.');
+    reader.readAsDataURL(file);
   };
 
   return (
@@ -331,11 +356,45 @@ export default function OnboardingPage() {
         </div>
       ) : null}
 
+      {step.id === 'photo' ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-twin/25 bg-twin/10">
+              {profilePhotoDataUrl ? (
+                <Image src={profilePhotoDataUrl} alt="Profile preview" fill unoptimized className="object-cover" />
+              ) : (
+                <span className="text-xs text-slate-500">No photo</span>
+              )}
+            </div>
+            <div>
+              <p className="text-sm text-slate-300">Add an image that will appear on your profile card.</p>
+              <p className="mt-1 text-xs text-slate-500">PNG, JPG, or WebP. You can skip this step.</p>
+            </div>
+          </div>
+
+          <label className="inline-flex cursor-pointer items-center justify-center rounded-full border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-twin/50 hover:text-white">
+            Choose photo
+            <input type="file" accept="image/*" className="hidden" onChange={onPhotoChange} />
+          </label>
+
+          {profilePhotoDataUrl ? (
+            <button
+              type="button"
+              onClick={() => setProfilePhotoDataUrl(null)}
+              className="ml-2 inline-flex items-center justify-center rounded-full border border-white/10 px-4 py-2 text-sm text-slate-400 transition hover:border-white/20 hover:text-slate-200"
+            >
+              Remove photo
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {step.id === 'auth' ? (
         <AuthPanel
           mode="create"
           profile={pendingProfile ?? undefined}
           pipelineAnalysis={pendingAnalysis}
+          profilePhotoDataUrl={profilePhotoDataUrl}
           onSuccess={() => router.push('/awakening')}
         />
       ) : null}
