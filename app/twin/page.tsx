@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Send } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { ChatBubble } from '@/components/twin/ChatBubble';
 import { PageTransition } from '@/components/PageTransition';
 import { SuggestedQuestions } from '@/components/twin/SuggestedQuestions';
 import { TwinAvatar } from '@/components/twin/TwinAvatar';
 import { VoiceInput } from '@/components/twin/VoiceInput';
+import type { HealthInputs } from '@/lib/fhir';
 import { getRedFlags } from '@/lib/red-flags';
 import { createTwinProfile } from '@/lib/profile';
 import { buildSystemPrompt } from '@/lib/twin-prompt';
@@ -23,6 +24,8 @@ export default function TwinPage() {
   const extractHabitChange = useFutureMeStore((state) => state.extractHabitChange);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(() => chatHistory.some((message) => message.role === 'user'));
+  const [toast, setToast] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const bootedRef = useRef(false);
 
@@ -36,6 +39,18 @@ export default function TwinPage() {
   }, [chatHistory]);
 
   useEffect(() => {
+    if (chatHistory.some((message) => message.role === 'user')) {
+      setHasInteracted(true);
+    }
+  }, [chatHistory]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timer = window.setTimeout(() => setToast(null), 3000);
+    return () => window.clearTimeout(timer);
+  }, [toast]);
+
+  useEffect(() => {
     if (!activeProfile || chatHistory.length > 0 || bootedRef.current) return;
     bootedRef.current = true;
 
@@ -47,7 +62,7 @@ export default function TwinPage() {
     const flags = getRedFlags(activeProfile.inputs);
     if (flags.length > 0) {
       const timer = window.setTimeout(() => {
-        addMessage({ role: 'assistant', content: flags[0].message });
+        addMessage({ role: 'assistant', content: `⚠ ${flags[0].message}` });
       }, 3000);
       return () => window.clearTimeout(timer);
     }
@@ -59,10 +74,15 @@ export default function TwinPage() {
       if (!text.trim() || !activeProfile || isStreaming) return;
       const trimmed = text.trim();
       setInput('');
+      setHasInteracted(true);
 
       const outgoing = [...useFutureMeStore.getState().chatHistory, { role: 'user' as const, content: trimmed }];
       addMessage({ role: 'user', content: trimmed });
+      const beforeInputs = useFutureMeStore.getState().simulatedInputs;
       extractHabitChange(trimmed);
+      const afterInputs = useFutureMeStore.getState().simulatedInputs;
+      const habitChange = getHabitChangeToast(beforeInputs, afterInputs);
+      if (habitChange) setToast(habitChange);
 
       setIsStreaming(true);
       addMessage({ role: 'assistant', content: '' });
@@ -134,14 +154,31 @@ export default function TwinPage() {
     );
   }
 
+  const showOpeningState = !hasInteracted && chatHistory.every((message) => message.role === 'assistant') && chatHistory.length <= 2;
+
   return (
-    <main className="flex min-h-screen flex-col bg-navy-950 pb-24">
+    <main className="flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-ivory to-ivory-dark pb-24 dark:bg-navy-950 dark:bg-none">
       <PageTransition>
-        <header className="sticky top-0 z-20 border-b border-white/10 bg-navy-950/92 px-4 py-3 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-2xl items-center gap-3">
+        <AnimatePresence>
+          {toast ? (
+            <motion.div
+              key={toast}
+              initial={{ opacity: 0, y: -12, x: '-50%' }}
+              animate={{ opacity: 1, y: 0, x: '-50%' }}
+              exit={{ opacity: 0, y: -10, x: '-50%' }}
+              transition={{ duration: 0.24, ease: 'easeOut' }}
+              className="fixed left-1/2 top-4 z-[80] rounded-full bg-twin px-5 py-2.5 text-sm font-medium text-navy-950 shadow-[0_18px_50px_rgba(0,201,167,0.28)]"
+            >
+              {toast}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        <header className="sticky top-0 z-20 border-b border-black/10 bg-ivory/88 px-5 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-navy-950/92">
+          <div className="mx-auto flex max-w-5xl items-center gap-3">
             <TwinAvatar active={isStreaming} />
             <div>
-              <p className="font-medium text-white">
+              <p className="font-medium text-slate-950 dark:text-white">
                 {activeProfile.inputs.name}, age {activeProfile.inputs.age + 10}
               </p>
               <p className="text-xs text-twin">Your future self · Online</p>
@@ -149,26 +186,39 @@ export default function TwinPage() {
           </div>
         </header>
 
-        <section className="mx-auto flex min-h-[calc(100vh-15rem)] w-full max-w-2xl flex-1 flex-col gap-4 overflow-y-auto px-4 py-5">
-          <AnimatePresence initial={false}>
-            {chatHistory.map((message, index) => (
-              <ChatBubble
-                key={`${message.role}-${index}`}
-                role={message.role}
-                content={message.content}
-                streaming={isStreaming && index === chatHistory.length - 1 && message.role === 'assistant'}
-              />
-            ))}
+        <section className="relative mx-auto flex min-h-[calc(100vh-14rem)] w-full max-w-5xl flex-1 flex-col overflow-y-auto px-5 pb-48 pt-7 sm:px-8">
+          {showOpeningState ? (
+            <div className="pointer-events-none absolute inset-x-0 top-28 flex justify-center select-none sm:top-32">
+              <span className="font-display text-[170px] leading-none text-slate-100/80 dark:text-white/[0.03] sm:text-[220px]">∞</span>
+            </div>
+          ) : null}
+          <div className={`relative z-10 mx-auto flex w-full max-w-3xl flex-col gap-4 ${showOpeningState ? 'sm:pt-2' : ''}`}>
+            <AnimatePresence initial={false}>
+              {chatHistory.map((message, index) => (
+                <ChatBubble
+                  key={`${message.role}-${index}`}
+                  role={message.role}
+                  content={message.content}
+                  streaming={isStreaming && index === chatHistory.length - 1 && message.role === 'assistant'}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
+
+          <AnimatePresence>
+            {showOpeningState ? (
+              <div className="relative z-10 mx-auto mt-8 w-full max-w-3xl">
+                <SuggestedQuestions onSelect={sendMessage} />
+              </div>
+            ) : null}
           </AnimatePresence>
           <div ref={messagesEndRef} />
         </section>
 
-        {chatHistory.length <= 2 ? <SuggestedQuestions onSelect={sendMessage} /> : null}
-
-        <footer className="fixed inset-x-0 bottom-[4.75rem] z-30 border-t border-white/10 bg-navy-950/92 p-4 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-2xl items-end gap-3">
+        <footer className="fixed inset-x-0 bottom-[4.75rem] z-30 border-t border-black/10 bg-ivory/88 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-navy-950/92">
+          <div className="mx-auto flex max-w-3xl items-end gap-3">
             <VoiceInput onTranscript={setInput} />
-            <div className="min-h-11 flex-1 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+            <div className="min-h-11 flex-1 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 shadow-[0_10px_36px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -179,7 +229,7 @@ export default function TwinPage() {
                   }
                 }}
                 placeholder="Ask your future self anything..."
-                className="max-h-32 w-full resize-none bg-transparent text-sm text-white outline-none placeholder:text-slate-600"
+                className="max-h-32 w-full resize-none bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-600"
                 rows={1}
               />
             </div>
@@ -198,4 +248,29 @@ export default function TwinPage() {
       </PageTransition>
     </main>
   );
+}
+
+function getHabitChangeToast(before: HealthInputs | null, after: HealthInputs | null) {
+  if (!before || !after) return null;
+
+  if (before.sleepHours !== after.sleepHours) {
+    return `⚡ Simulation updated — sleep changed to ${after.sleepHours}h`;
+  }
+  if (before.exerciseDaysPerWeek !== after.exerciseDaysPerWeek) {
+    return `⚡ Simulation updated — exercise changed to ${after.exerciseDaysPerWeek} days/week`;
+  }
+  if (before.dietQuality !== after.dietQuality) {
+    return `⚡ Simulation updated — diet changed to ${after.dietQuality}/5`;
+  }
+  if (before.stressLevel !== after.stressLevel) {
+    return `⚡ Simulation updated — stress changed to ${after.stressLevel}/5`;
+  }
+  if (before.alcoholDrinksPerWeek !== after.alcoholDrinksPerWeek) {
+    return `⚡ Simulation updated — alcohol changed to ${after.alcoholDrinksPerWeek}/week`;
+  }
+  if (before.smokingStatus !== after.smokingStatus) {
+    return `⚡ Simulation updated — smoking changed to ${after.smokingStatus}`;
+  }
+
+  return null;
 }
