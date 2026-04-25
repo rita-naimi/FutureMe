@@ -1,11 +1,10 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Send } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { ChatBubble } from '@/components/twin/ChatBubble';
-import { DemoQueryLoader } from '@/components/DemoSwitcher';
 import { PageTransition } from '@/components/PageTransition';
 import { SuggestedQuestions } from '@/components/twin/SuggestedQuestions';
 import { TwinAvatar } from '@/components/twin/TwinAvatar';
@@ -122,13 +121,10 @@ export default function TwinPage() {
   if (!profile || !activeProfile) {
     return (
       <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-8">
-        <Suspense fallback={null}>
-          <DemoQueryLoader />
-        </Suspense>
         <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center text-center">
           <TwinAvatar size="lg" active />
           <h1 className="mt-7 text-3xl font-bold text-white">No twin yet</h1>
-          <p className="mt-3 text-slate-400">Create a health profile or load a Synthea persona before starting the conversation.</p>
+          <p className="mt-3 text-slate-400">Create your health profile before starting the conversation.</p>
           <Link href="/onboarding" className="mt-7 inline-flex items-center gap-2 rounded-full bg-twin px-5 py-3 font-semibold text-navy-950">
             Start onboarding
             <ArrowRight className="h-4 w-4" />
@@ -140,9 +136,6 @@ export default function TwinPage() {
 
   return (
     <main className="flex min-h-screen flex-col bg-navy-950 pb-24">
-      <Suspense fallback={null}>
-        <DemoQueryLoader />
-      </Suspense>
       <PageTransition>
         <header className="sticky top-0 z-20 border-b border-white/10 bg-navy-950/92 px-4 py-3 backdrop-blur-xl">
           <div className="mx-auto flex max-w-2xl items-center gap-3">

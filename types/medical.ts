@@ -55,7 +55,7 @@ export type CompletedMedicalProfile = {
   hba1c?: number;
   energyIntake?: number;
 
-  estimatedFromSynthea?: {
+  estimatedFromQuestionnaire?: {
     systolicBloodPressure: boolean;
     totalCholesterol: boolean;
     hdlCholesterol: boolean;

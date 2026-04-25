@@ -1,9 +1,8 @@
 'use client';
 
-import { Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, RotateCcw, SlidersHorizontal } from 'lucide-react';
-import { DemoQueryLoader } from '@/components/DemoSwitcher';
 import { PageTransition } from '@/components/PageTransition';
 import { runPipelineFromClient } from '@/lib/backend/client';
 import { computeBiologicalAge, computeRisks } from '@/lib/risks';
@@ -96,13 +95,10 @@ export default function SimulatePage() {
   if (!profile || !simulatedInputs || !currentRisks || !simulatedRisks || currentBioAge === null || simulatedBioAge === null) {
     return (
       <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-8">
-        <Suspense fallback={null}>
-          <DemoQueryLoader />
-        </Suspense>
         <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center text-center">
           <SlidersHorizontal className="mb-5 h-10 w-10 text-twin" />
           <h1 className="text-3xl font-bold text-white">No simulation yet</h1>
-          <p className="mt-3 text-slate-400">Create a profile or load demo data before changing future habits.</p>
+          <p className="mt-3 text-slate-400">Create your profile before changing future habits.</p>
           <Link href="/onboarding" className="mt-7 inline-flex items-center gap-2 rounded-full bg-twin px-5 py-3 font-semibold text-navy-950">
             Start onboarding
             <ArrowRight className="h-4 w-4" />
@@ -116,9 +112,6 @@ export default function SimulatePage() {
 
   return (
     <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-6">
-      <Suspense fallback={null}>
-        <DemoQueryLoader />
-      </Suspense>
       <PageTransition>
         <div className="mx-auto max-w-5xl">
           <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -289,8 +282,8 @@ export default function SimulatePage() {
                   </p>
                   {pipelineAnalysis.derivedClinicalMarkers ? (
                     <p className="mt-2 text-xs leading-relaxed text-slate-500">
-                      Missing biomarkers are estimated from a rule-based matched cohort of similar synthetic Synthea patients. This is an
-                      explainable prototype estimation method, not a validated clinical prediction model.
+                      Missing biomarkers are estimated by the backend when values are not provided. This is not a validated clinical prediction
+                      model.
                     </p>
                   ) : null}
                 </article>

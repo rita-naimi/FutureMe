@@ -12,13 +12,13 @@ export function calculateBmi(heightCm: number, weightKg: number): number {
   return weightKg / (heightM * heightM);
 }
 
-export function buildCompletedMedicalProfile(userInput: UserInput, syntheaEstimates?: ProfileEstimates): CompletedMedicalProfile {
+export function buildCompletedMedicalProfile(userInput: UserInput, questionnaireEstimates?: ProfileEstimates): CompletedMedicalProfile {
   const systolicBloodPressure =
-    userInput.systolicBloodPressure ?? syntheaEstimates?.systolicBloodPressure;
-  const totalCholesterol = userInput.totalCholesterol ?? syntheaEstimates?.totalCholesterol;
-  const hdlCholesterol = userInput.hdlCholesterol ?? syntheaEstimates?.hdlCholesterol;
-  const diabetes = userInput.diabetes ?? syntheaEstimates?.diabetes;
-  const onBloodPressureTreatment = syntheaEstimates?.onBloodPressureTreatment;
+    userInput.systolicBloodPressure ?? questionnaireEstimates?.systolicBloodPressure;
+  const totalCholesterol = userInput.totalCholesterol ?? questionnaireEstimates?.totalCholesterol;
+  const hdlCholesterol = userInput.hdlCholesterol ?? questionnaireEstimates?.hdlCholesterol;
+  const diabetes = userInput.diabetes ?? questionnaireEstimates?.diabetes;
+  const onBloodPressureTreatment = questionnaireEstimates?.onBloodPressureTreatment;
   const requiredSystolicBloodPressure = requireNumber('systolicBloodPressure', systolicBloodPressure);
   const requiredTotalCholesterol = requireNumber('totalCholesterol', totalCholesterol);
   const requiredHdlCholesterol = requireNumber('hdlCholesterol', hdlCholesterol);
@@ -35,12 +35,12 @@ export function buildCompletedMedicalProfile(userInput: UserInput, syntheaEstima
     systolicBloodPressure: requiredSystolicBloodPressure,
     totalCholesterol: requiredTotalCholesterol,
     hdlCholesterol: requiredHdlCholesterol,
-    estimatedFromSynthea: {
-      systolicBloodPressure: userInput.systolicBloodPressure === undefined && syntheaEstimates?.systolicBloodPressure !== undefined,
-      totalCholesterol: userInput.totalCholesterol === undefined && syntheaEstimates?.totalCholesterol !== undefined,
-      hdlCholesterol: userInput.hdlCholesterol === undefined && syntheaEstimates?.hdlCholesterol !== undefined,
-      diabetes: userInput.diabetes === undefined && syntheaEstimates?.diabetes !== undefined,
-      onBloodPressureTreatment: syntheaEstimates?.onBloodPressureTreatment !== undefined
+    estimatedFromQuestionnaire: {
+      systolicBloodPressure: userInput.systolicBloodPressure === undefined && questionnaireEstimates?.systolicBloodPressure !== undefined,
+      totalCholesterol: userInput.totalCholesterol === undefined && questionnaireEstimates?.totalCholesterol !== undefined,
+      hdlCholesterol: userInput.hdlCholesterol === undefined && questionnaireEstimates?.hdlCholesterol !== undefined,
+      diabetes: userInput.diabetes === undefined && questionnaireEstimates?.diabetes !== undefined,
+      onBloodPressureTreatment: questionnaireEstimates?.onBloodPressureTreatment !== undefined
     }
   };
 }
@@ -60,12 +60,12 @@ export function calculateCardioRisk(profile: CompletedMedicalProfile): number {
  * Formula inputs and app source:
  * - age: user questionnaire
  * - sex: user questionnaire
- * - systolicBloodPressure: user questionnaire or Synthea matched-cohort estimate
- * - totalCholesterol: user questionnaire or Synthea matched-cohort estimate
- * - hdlCholesterol: user questionnaire or Synthea matched-cohort estimate
+ * - systolicBloodPressure: user questionnaire or questionnaire-derived estimate
+ * - totalCholesterol: user questionnaire or questionnaire-derived estimate
+ * - hdlCholesterol: user questionnaire or questionnaire-derived estimate
  * - smoker: derived only from user questionnaire smokingStatus === "current"
- * - diabetes: user questionnaire or Synthea matched-cohort estimate
- * - onBloodPressureTreatment: Synthea matched-cohort estimate
+ * - diabetes: user questionnaire or questionnaire-derived estimate
+ * - onBloodPressureTreatment: questionnaire-derived estimate
  *
  * Deliberately not used by this equation:
  * - BMI, exerciseDaysPerWeek, sleepHours, stressLevel, LDL, triglycerides, HbA1c, energyIntake.
@@ -116,7 +116,7 @@ function round1(value: number): number {
 
 function requireNumber(field: string, value: number | undefined): number {
   if (value === undefined || !Number.isFinite(value)) {
-    throw new Error(`Cannot build Framingham profile: missing ${field}. Provide it from the questionnaire or Synthea estimate.`);
+    throw new Error(`Cannot build Framingham profile: missing ${field}. Provide it from the questionnaire or derived estimate.`);
   }
 
   return value;
@@ -124,7 +124,7 @@ function requireNumber(field: string, value: number | undefined): number {
 
 function requireBoolean(field: string, value: boolean | undefined): boolean {
   if (value === undefined) {
-    throw new Error(`Cannot build Framingham profile: missing ${field}. Provide it from the questionnaire or Synthea estimate.`);
+    throw new Error(`Cannot build Framingham profile: missing ${field}. Provide it from the questionnaire or derived estimate.`);
   }
 
   return value;

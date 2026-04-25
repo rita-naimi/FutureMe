@@ -1,12 +1,12 @@
 # FutureMe
 ## Talk to the person your habits are building.
 
-## Backend MVP (real + synthetic + risk + LLM context)
+## Backend MVP (user profile + risk + LLM context)
 
 Une implementation backend a ete ajoutee pour demarrer le pipeline du guide:
 
 - Ingestion d'un profil patient (payload JSON)
-- Matching sur une cohorte de bundles FHIR Synthea (`data/synthea/fhir/*.json`)
+- Estimation explicite des marqueurs cliniques manquants depuis le questionnaire utilisateur
 - Calcul d'indices de sante: Framingham, ASCVD proxy, metabolic syndrome proxy, allostatic load, Life Essential 8 proxy, lifestyle score
 - Recuperation contextuelle PubMed via eUtils NCBI
 - Generation de synthese clinique via BioMistral (`BioMistral/BioMistral-7B`) avec fallback local
@@ -21,7 +21,7 @@ Exemple de payload:
 ```json
 {
 	"inputs": {
-		"name": "James",
+		"name": "Test User",
 		"age": 52,
 		"sex": "male",
 		"heightCm": 181,
@@ -52,7 +52,7 @@ Exemple de payload:
 La reponse inclut:
 
 - `profile`: profil Twin/FHIR existant
-- `matching`: patients synthetiques les plus proches
+- `derivedClinicalMarkers`: marqueurs fournis ou estimes depuis le questionnaire
 - `riskEvidence`: indices de score + hypotheses
 - `pubmed`: query + articles contextuels
 - `llm`: synthese generee (si activee)

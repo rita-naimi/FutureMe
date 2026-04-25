@@ -95,15 +95,10 @@ async function runPipeline() {
 
 // ─── 2. construit le system prompt ──────────────────────────
 function buildSystemPrompt(pipeline) {
-  const { profile, riskEvidence, matching, derivedClinicalMarkers } = pipeline;
+  const { profile, riskEvidence, derivedClinicalMarkers } = pipeline;
   const i = profile.inputs;
   const r = profile.risks;
   const yrs = MES_DONNEES.yearsOfHistory;
-
-  const matches = matching.selected.map((m, idx) => {
-    const cm = m.clinicalMarkers || {};
-    return `  ${idx + 1}. ${m.name} (sim ${(m.similarity * 100).toFixed(0)}%) — TC=${cm.totalCholesterolMgDl ?? 'NA'}, HDL=${cm.hdlMgDl ?? 'NA'}, PAS=${cm.systolicBloodPressureMmHg ?? 'NA'}`;
-  }).join('\n');
 
   const markersLine = derivedClinicalMarkers
     ? `Cholestérol total ${derivedClinicalMarkers.totalCholesterolMgDl ?? 'NA'} mg/dL, HDL ${derivedClinicalMarkers.hdlMgDl ?? 'NA'} mg/dL, PAS ${derivedClinicalMarkers.systolicBloodPressureMmHg ?? 'NA'} mmHg (source: ${derivedClinicalMarkers.source})`
@@ -128,9 +123,6 @@ Risques calculés :
 - Âge biologique estimé : ${profile.biologicalAge} ans
 
 Marqueurs cliniques : ${markersLine}
-
-Cohorte Synthea similaire (baseline il y a ${yrs} ans, après rétro-projection) :
-${matches}
 
 Insight clé : ${profile.keyInsight}
 Risque dominant : ${profile.topRisk}
@@ -260,6 +252,6 @@ async function chat(systemPrompt, pipelineSnapshot) {
 // ─── main ───────────────────────────────────────────────────
 const pipeline = await runPipeline();
 log(C.green, '✅ Pipeline OK');
-log(C.dim, `   ${pipeline.matching.selected.length} patients similaires, ${pipeline.riskEvidence.evidence.length} évidences cliniques`);
+log(C.dim, `   ${pipeline.riskEvidence.evidence.length} évidences cliniques`);
 const systemPrompt = buildSystemPrompt(pipeline);
 await chat(systemPrompt, pipeline);

@@ -64,7 +64,7 @@ function barre(score: number, max = 100, longueur = 20) {
 }
 
 function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeline>>) {
-  const { profile, riskEvidence, matching, llm, generatedAt, derivedClinicalMarkers } = result;
+  const { profile, riskEvidence, llm, generatedAt, derivedClinicalMarkers } = result;
   const { inputs } = profile;
 
   console.log('\n');
@@ -115,32 +115,17 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
   console.log(`  Score global      : ${r.overall.toFixed(0)}/100  ${barre(r.overall)}`);
   console.log();
 
-  // ── Patients synthétiques similaires ──
-  console.log(`👥  PATIENTS SIMILAIRES (${matching.selected.length} / ${matching.totalCandidates} candidats)`);
-  console.log('  ─────────────────────────────────────');
-  matching.selected.forEach((p, i) => {
-    console.log(`  ${i + 1}. ${p.name} — appariement par filtres explicites (source: ${p.source})`);
-    console.log(`     Age ${p.inputs.age}a, ${p.inputs.sex}, IMC ${(p.inputs.weightKg / Math.pow(p.inputs.heightCm / 100, 2)).toFixed(1)}, tabac: ${p.inputs.smokingStatus}, sommeil: ${p.inputs.sleepHours}h`);
-    if (p.clinicalMarkers) {
-      const cm = p.clinicalMarkers;
-      console.log(`     ↳ FHIR clinical: TC=${cm.totalCholesterolMgDl ?? 'NA'} mg/dL, HDL=${cm.hdlMgDl ?? 'NA'} mg/dL, PAS=${cm.systolicBloodPressureMmHg ?? 'NA'} mmHg`);
-    }
-  });
-  console.log();
-
-  // ── Marqueurs cliniques utilisés (user vs Synthea rule-based) ──
+  // ── Marqueurs cliniques utilisés (fournis vs estimés depuis le questionnaire) ──
   if (derivedClinicalMarkers) {
     const labels: Record<string, string> = {
       'user-provided': '✅ Fournis par toi',
-      'rule-based-synthea': '🧬 Estimés depuis une cohorte Synthea filtrée (médiane / vote majoritaire)',
-      mixed: '🧬 Fournis par toi et complétés depuis une cohorte Synthea filtrée'
+      'questionnaire-derived': '🧬 Estimés depuis le questionnaire',
+      mixed: '🧬 Fournis par toi et complétés depuis le questionnaire'
     };
     console.log('🔬  MARQUEURS CLINIQUES UTILISÉS POUR LE CALCUL DES RISQUES');
     console.log('  ─────────────────────────────────────');
     console.log(`  Source : ${labels[derivedClinicalMarkers.source]}`);
     console.log(`  Méthode : ${derivedClinicalMarkers.estimationMethod}`);
-    console.log(`  Taille cohorte : ${derivedClinicalMarkers.matchedCohortSize}`);
-    console.log(`  Filtres relâchés : ${derivedClinicalMarkers.relaxedFiltersUsed.join(', ') || 'aucun'}`);
     console.log(`  Cholestérol total : ${derivedClinicalMarkers.totalCholesterolMgDl ?? 'NA'} mg/dL`);
     console.log(`  HDL               : ${derivedClinicalMarkers.hdlMgDl ?? 'NA'} mg/dL`);
     console.log(`  Tension systolique: ${derivedClinicalMarkers.systolicBloodPressureMmHg ?? 'NA'} mmHg`);
@@ -195,13 +180,10 @@ describe('Test personnel FutureMe', () => {
     console.log('═══════════════════════════════════════════════════════════════\n');
 
     // Assertions minimales pour valider que le pipeline a bien tourné
-    const { riskEvidence, profile, matching } = result;
+    const { riskEvidence, profile } = result;
 
     if (riskEvidence.framingham10YearRiskPercent < 0 || riskEvidence.framingham10YearRiskPercent > 100) {
       throw new Error(`Framingham hors bornes: ${riskEvidence.framingham10YearRiskPercent}`);
-    }
-    if (matching.selected.length === 0) {
-      throw new Error('Aucun patient synthétique trouvé');
     }
     if (!profile.topRisk || !profile.keyInsight) {
       throw new Error('Profil incomplet (topRisk ou keyInsight manquant)');

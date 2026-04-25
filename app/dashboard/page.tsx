@@ -1,13 +1,12 @@
 'use client';
 
-import { Suspense, useMemo } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { ArrowRight, FileJson, MessageCircle } from 'lucide-react';
 import { BiologicalAgeCard } from '@/components/dashboard/BiologicalAgeCard';
 import { RiskGauge } from '@/components/dashboard/RiskGauge';
 import { HabitRadar } from '@/components/dashboard/HabitRadar';
 import { HealthScoreGrid } from '@/components/dashboard/HealthScoreGrid';
-import { DemoQueryLoader, DemoSwitcher } from '@/components/DemoSwitcher';
 import { PageTransition } from '@/components/PageTransition';
 import { ShareCard } from '@/components/ShareCard';
 import { createTwinProfile } from '@/lib/profile';
@@ -17,7 +16,6 @@ import { useFutureMeStore } from '@/lib/store';
 export default function DashboardPage() {
   const profile = useFutureMeStore((state) => state.profile);
   const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
-  const loadDemoPersona = useFutureMeStore((state) => state.loadDemoPersona);
 
   const display = useMemo(() => {
     if (!profile) return null;
@@ -35,15 +33,12 @@ export default function DashboardPage() {
   if (!profile || !display) {
     return (
       <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-8">
-        <Suspense fallback={null}>
-          <DemoQueryLoader />
-        </Suspense>
         <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center text-center">
           <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-full border border-twin/30 bg-twin/10">
             <FileJson className="h-6 w-6 text-twin" />
           </div>
           <h1 className="text-3xl font-bold text-white">Create a profile first</h1>
-          <p className="mt-3 text-slate-400">FutureMe needs questionnaire or Synthea demo data before it can project a health twin.</p>
+          <p className="mt-3 text-slate-400">FutureMe needs your questionnaire profile before it can project a health twin.</p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row">
             <Link
               href="/onboarding"
@@ -52,13 +47,6 @@ export default function DashboardPage() {
               Start onboarding
               <ArrowRight className="h-4 w-4" />
             </Link>
-            <button
-              type="button"
-              onClick={() => loadDemoPersona('alex')}
-              className="rounded-full border border-white/15 px-5 py-3 font-semibold text-slate-200"
-            >
-              Load Alex demo
-            </button>
           </div>
         </div>
       </main>
@@ -67,17 +55,12 @@ export default function DashboardPage() {
 
   const hasSimulation = simulatedInputs && JSON.stringify(profile.inputs) !== JSON.stringify(simulatedInputs);
   const sourceLabel =
-    profile.fhirSource === 'synthea-generated'
-      ? 'Synthea-generated FHIR profile'
-      : profile.fhirSource === 'wearable-import'
+    profile.fhirSource === 'wearable-import'
         ? 'FHIR plus wearable import'
         : 'FHIR R4 questionnaire profile';
 
   return (
     <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-6">
-      <Suspense fallback={null}>
-        <DemoQueryLoader />
-      </Suspense>
       <PageTransition>
         <div className="mx-auto max-w-6xl space-y-6">
           <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
@@ -85,7 +68,7 @@ export default function DashboardPage() {
               <p className="text-sm font-medium text-twin">This is you today</p>
               <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">{display.inputs.name} health snapshot</h1>
               <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">
-                Profile stored as HL7 FHIR R4 Patient plus LOINC-coded Observations. The scores are deterministic demo heuristics, not a diagnosis.
+                Profile stored as HL7 FHIR R4 Patient plus LOINC-coded Observations. These projections are educational estimates, not a diagnosis.
               </p>
             </div>
             <Link
@@ -96,8 +79,6 @@ export default function DashboardPage() {
               Talk to future self
             </Link>
           </header>
-
-          <DemoSwitcher />
 
           {hasSimulation ? (
             <div className="rounded-2xl border border-twin/25 bg-twin/10 p-4">

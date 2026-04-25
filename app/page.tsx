@@ -1,19 +1,12 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, Database, HeartPulse, LineChart, MessageCircle } from 'lucide-react';
+import { ArrowRight, HeartPulse, LineChart, LogIn, MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { TwinAvatar } from '@/components/twin/TwinAvatar';
-import { useFutureMeStore } from '@/lib/store';
 
 export default function LandingPage() {
   const router = useRouter();
-  const loadDemoPersona = useFutureMeStore((state) => state.loadDemoPersona);
-
-  const startDemo = () => {
-    loadDemoPersona('alex');
-    router.push('/dashboard?demo=alex');
-  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-navy-950 px-6">
@@ -62,11 +55,11 @@ export default function LandingPage() {
             </button>
             <button
               type="button"
-              onClick={startDemo}
+              onClick={() => router.push('/login')}
               className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-200 transition hover:border-twin/40 hover:text-twin"
             >
-              <Database className="h-4 w-4" />
-              Load Alex demo
+              <LogIn className="h-4 w-4" />
+              Log in
             </button>
           </motion.div>
 
@@ -76,7 +69,7 @@ export default function LandingPage() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8 }}
           >
-            HL7 FHIR R4 profile · LOINC observations · Synthea synthetic personas
+            HL7 FHIR R4 profile · LOINC observations · Personalized risk projection
           </motion.p>
         </section>
 
@@ -91,16 +84,16 @@ export default function LandingPage() {
             <div className="rounded-[1.4rem] border border-white/10 bg-navy-900 p-5">
               <div className="mb-5 flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Alex, age 34</p>
-                  <p className="mt-1 text-lg font-semibold text-white">Digital twin online</p>
+                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Your profile</p>
+                  <p className="mt-1 text-lg font-semibold text-white">Digital twin ready</p>
                 </div>
                 <TwinAvatar />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 {[
-                  { label: 'Bio age', value: '41', icon: HeartPulse, color: 'text-red-300' },
-                  { label: 'Heart risk', value: '72', icon: LineChart, color: 'text-amber-300' },
-                  { label: 'Twin chat', value: 'live', icon: MessageCircle, color: 'text-twin' }
+                  { label: 'Bio age', value: 'calc', icon: HeartPulse, color: 'text-red-300' },
+                  { label: 'Risk map', value: 'live', icon: LineChart, color: 'text-amber-300' },
+                  { label: 'Twin chat', value: 'ready', icon: MessageCircle, color: 'text-twin' }
                 ].map(({ label, value, icon: Icon, color }) => (
                   <div key={label} className="rounded-2xl border border-white/10 bg-navy-950 p-4">
                     <Icon className={`h-4 w-4 ${color}`} />
@@ -111,7 +104,7 @@ export default function LandingPage() {
               </div>
               <div className="mt-5 rounded-2xl border border-twin/20 bg-twin/5 p-4">
                 <p className="text-sm leading-relaxed text-slate-200">
-                  “I remember thinking there was still time. There was, but less than I thought.”
+                  Your projection updates as your real habits change.
                 </p>
               </div>
               <div className="mt-5 h-28 rounded-2xl border border-white/10 bg-navy-950 p-4">

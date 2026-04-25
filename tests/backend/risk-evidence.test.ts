@@ -1,11 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { buildRiskEvidence } from '@/lib/backend/risk-evidence';
-import { JAMES_PERSONA } from '@/data/synthea/james';
-import { MAYA_PERSONA } from '@/data/synthea/maya';
+import { HIGH_RISK_PROFILE, LOW_RISK_PROFILE } from '../fixtures/health-inputs';
 
 describe('buildRiskEvidence', () => {
   it('returns richer indices for a high-risk profile', () => {
-    const risk = buildRiskEvidence(JAMES_PERSONA, {
+    const risk = buildRiskEvidence(HIGH_RISK_PROFILE, {
       totalCholesterolMgDl: 228,
       hdlMgDl: 40,
       systolicBloodPressureMmHg: 142,
@@ -21,7 +20,7 @@ describe('buildRiskEvidence', () => {
   });
 
   it('shows better profile on low-risk data', () => {
-    const risk = buildRiskEvidence(MAYA_PERSONA, {
+    const risk = buildRiskEvidence(LOW_RISK_PROFILE, {
       totalCholesterolMgDl: 171,
       hdlMgDl: 68,
       systolicBloodPressureMmHg: 114,

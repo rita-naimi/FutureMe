@@ -4,25 +4,40 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { HealthInputs, TwinProfile } from './fhir';
 import type { PipelineResponse } from './backend/types';
-import type { DemoPersonaId } from './demo-personas';
-import { createDemoProfile } from './demo-personas';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
+type AccountResult = { ok: true } | { ok: false; error: string };
+
+export interface FutureMeAccount {
+  email: string;
+  password: string;
+  name: string;
+  profile: TwinProfile;
+  pipelineAnalysis: PipelineResponse | null;
+  updatedAt: string;
+}
 
 interface FutureMeStore {
   profile: TwinProfile | null;
   simulatedInputs: HealthInputs | null;
   chatHistory: ChatMessage[];
-  demoPersona: DemoPersonaId | null;
   pipelineAnalysis: PipelineResponse | null;
+  currentUserEmail: string | null;
+  accounts: Record<string, FutureMeAccount>;
   setProfile: (profile: TwinProfile) => void;
   setSimulatedInputs: (inputs: HealthInputs) => void;
   setPipelineAnalysis: (analysis: PipelineResponse | null) => void;
+  registerAccount: (email: string, password: string, profile: TwinProfile, analysis?: PipelineResponse | null) => AccountResult;
+  loginAccount: (email: string, password: string) => AccountResult;
+  logout: () => void;
   addMessage: (message: ChatMessage) => void;
   replaceLastAssistantMessage: (content: string) => void;
   extractHabitChange: (message: string) => void;
-  loadDemoPersona: (persona: DemoPersonaId) => void;
   reset: () => void;
+}
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
 }
 
 export const useFutureMeStore = create<FutureMeStore>()(
@@ -31,21 +46,121 @@ export const useFutureMeStore = create<FutureMeStore>()(
       profile: null,
       simulatedInputs: null,
       chatHistory: [],
-      demoPersona: null,
       pipelineAnalysis: null,
+      currentUserEmail: null,
+      accounts: {},
 
       setProfile: (profile) =>
-        set({
-          profile,
-          simulatedInputs: profile.inputs,
-          chatHistory: [],
-          demoPersona: null,
-          pipelineAnalysis: null
+        set((state) => {
+          const base = {
+            profile,
+            simulatedInputs: profile.inputs,
+            chatHistory: [],
+            pipelineAnalysis: null
+          };
+          if (!state.currentUserEmail) return base;
+
+          const account = state.accounts[state.currentUserEmail];
+          if (!account) return base;
+
+          return {
+            ...base,
+            accounts: {
+              ...state.accounts,
+              [state.currentUserEmail]: {
+                ...account,
+                name: profile.inputs.name,
+                profile,
+                pipelineAnalysis: null,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          };
         }),
 
       setSimulatedInputs: (inputs) => set({ simulatedInputs: inputs }),
 
-      setPipelineAnalysis: (analysis) => set({ pipelineAnalysis: analysis }),
+      setPipelineAnalysis: (analysis) =>
+        set((state) => {
+          if (!state.currentUserEmail) return { pipelineAnalysis: analysis };
+          const account = state.accounts[state.currentUserEmail];
+          if (!account) return { pipelineAnalysis: analysis };
+
+          return {
+            pipelineAnalysis: analysis,
+            accounts: {
+              ...state.accounts,
+              [state.currentUserEmail]: {
+                ...account,
+                pipelineAnalysis: analysis,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          };
+        }),
+
+      registerAccount: (email, password, profile, analysis = null) => {
+        const normalizedEmail = normalizeEmail(email);
+        if (!normalizedEmail || !normalizedEmail.includes('@')) {
+          return { ok: false, error: 'Enter a valid email address.' };
+        }
+        if (password.length < 8) {
+          return { ok: false, error: 'Use at least 8 characters for your password.' };
+        }
+        if (get().accounts[normalizedEmail]) {
+          return { ok: false, error: 'An account already exists for this email.' };
+        }
+
+        const account: FutureMeAccount = {
+          email: normalizedEmail,
+          password,
+          name: profile.inputs.name,
+          profile,
+          pipelineAnalysis: analysis,
+          updatedAt: new Date().toISOString()
+        };
+
+        set((state) => ({
+          currentUserEmail: normalizedEmail,
+          accounts: {
+            ...state.accounts,
+            [normalizedEmail]: account
+          },
+          profile,
+          simulatedInputs: profile.inputs,
+          chatHistory: [],
+          pipelineAnalysis: analysis
+        }));
+
+        return { ok: true };
+      },
+
+      loginAccount: (email, password) => {
+        const normalizedEmail = normalizeEmail(email);
+        const account = get().accounts[normalizedEmail];
+        if (!account || account.password !== password) {
+          return { ok: false, error: 'Email or password is incorrect.' };
+        }
+
+        set({
+          currentUserEmail: normalizedEmail,
+          profile: account.profile,
+          simulatedInputs: account.profile.inputs,
+          chatHistory: [],
+          pipelineAnalysis: account.pipelineAnalysis
+        });
+
+        return { ok: true };
+      },
+
+      logout: () =>
+        set({
+          currentUserEmail: null,
+          profile: null,
+          simulatedInputs: null,
+          chatHistory: [],
+          pipelineAnalysis: null
+        }),
 
       addMessage: (message) => set((state) => ({ chatHistory: [...state.chatHistory, message] })),
 
@@ -91,24 +206,13 @@ export const useFutureMeStore = create<FutureMeStore>()(
         if (changed) set({ simulatedInputs: updated });
       },
 
-      loadDemoPersona: (persona) => {
-        const profile = createDemoProfile(persona);
-        set({
-          profile,
-          simulatedInputs: profile.inputs,
-          chatHistory: [],
-          demoPersona: persona,
-          pipelineAnalysis: null
-        });
-      },
-
       reset: () =>
         set({
           profile: null,
           simulatedInputs: null,
           chatHistory: [],
-          demoPersona: null,
-          pipelineAnalysis: null
+          pipelineAnalysis: null,
+          currentUserEmail: null
         })
     }),
     {
@@ -117,8 +221,9 @@ export const useFutureMeStore = create<FutureMeStore>()(
         profile: state.profile,
         simulatedInputs: state.simulatedInputs,
         chatHistory: state.chatHistory,
-        demoPersona: state.demoPersona,
-        pipelineAnalysis: state.pipelineAnalysis
+        pipelineAnalysis: state.pipelineAnalysis,
+        currentUserEmail: state.currentUserEmail,
+        accounts: state.accounts
       })
     }
   )

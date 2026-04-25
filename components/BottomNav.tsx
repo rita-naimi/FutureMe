@@ -11,7 +11,7 @@ const TABS = [
   { href: '/timeline', icon: LineChart, label: 'Timeline' }
 ];
 
-const HIDDEN_PATHS = new Set(['/', '/onboarding', '/awakening']);
+const HIDDEN_PATHS = new Set(['/', '/onboarding', '/login', '/awakening']);
 
 export function BottomNav() {
   const pathname = usePathname();

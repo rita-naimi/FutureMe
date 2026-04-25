@@ -13,6 +13,7 @@ interface Props {
   onNext: () => void;
   onBack?: () => void;
   nextLabel?: string;
+  hideNext?: boolean;
 }
 
 export function StepWrapper({
@@ -24,7 +25,8 @@ export function StepWrapper({
   children,
   onNext,
   onBack,
-  nextLabel = 'Continue'
+  nextLabel = 'Continue',
+  hideNext = false
 }: Props) {
   return (
     <main className="min-h-screen bg-navy-950 px-5">
@@ -77,14 +79,18 @@ export function StepWrapper({
           ) : (
             <span />
           )}
-          <button
-            type="button"
-            onClick={onNext}
-            className="inline-flex items-center gap-2 rounded-full bg-twin px-6 py-3 text-sm font-semibold text-navy-950 transition hover:bg-twin-dark"
-          >
-            {nextLabel}
-            <ArrowRight className="h-4 w-4" />
-          </button>
+          {hideNext ? (
+            <span />
+          ) : (
+            <button
+              type="button"
+              onClick={onNext}
+              className="inline-flex items-center gap-2 rounded-full bg-twin px-6 py-3 text-sm font-semibold text-navy-950 transition hover:bg-twin-dark"
+            >
+              {nextLabel}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
     </main>

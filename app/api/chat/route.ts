@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown Claude API error';
     return streamText(
-      `I can feel the connection flicker, but the signal is still useful. The live Claude endpoint returned: ${message}. For the demo, ask me about smoking, sleep, movement, or the timeline and I will keep the simulation moving.`
+      `I can feel the connection flicker, but the signal is still useful. The live Claude endpoint returned: ${message}. Ask me about smoking, sleep, movement, or the timeline and I will keep the simulation moving.`
     );
   }
 }
