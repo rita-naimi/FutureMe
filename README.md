@@ -83,6 +83,40 @@ ANTHROPIC_CLINICAL_MAX_TOKENS=900
 
 `ANTHROPIC_CHAT_MODEL` controle le chat `/api/chat`; `ANTHROPIC_CLINICAL_MODEL` controle la synthese `/api/pipeline`. Les plafonds `MAX_TOKENS` limitent la longueur des sorties pour garder la consommation de credits raisonnable. Si Claude n'est pas disponible ou si la cle manque de credit, l'application affiche explicitement le fallback local au lieu de masquer l'erreur.
 
+### Voix naturelle du Digital Twin
+
+Le mode vocal utilise `/api/tts`. La route essaie d'abord Kokoro en local, sans cle API, puis OpenAI TTS en secours si Kokoro n'est pas installe ou desactive.
+
+Kokoro est le mode recommande pour une demo gratuite:
+
+```bash
+brew install espeak-ng
+python3 -m venv --system-site-packages .venv-kokoro
+.venv-kokoro/bin/python -m pip install "kokoro>=0.9.4"
+```
+
+Variables Kokoro utiles:
+
+```bash
+KOKORO_VOICE=af_heart
+KOKORO_LANG_CODE=a
+KOKORO_SPEED=0.94
+KOKORO_TTS_TIMEOUT_MS=180000
+KOKORO_TTS_ENABLED=1
+```
+
+`KOKORO_LANG_CODE=a` force l'anglais americain. La premiere generation peut prendre plus de temps car Kokoro telecharge/cache les poids du modele.
+
+Fallback OpenAI optionnel:
+
+```bash
+OPENAI_API_KEY=sk-...
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
+OPENAI_TTS_VOICE=marin
+```
+
+`OPENAI_TTS_VOICE` peut etre changee, par exemple `cedar`, si une autre voix convient mieux a la demo. Si Kokoro et OpenAI ne sont pas disponibles, la voix ne sera pas jouee et l'erreur sera affichee explicitement.
+
 ### Tests
 
 ```bash

@@ -38,11 +38,26 @@ export default function TwinPage() {
   const speechActiveRef = useRef(false);
   const speechSessionRef = useRef(0);
   const speechCompleteRef = useRef<(() => void) | null>(null);
+  const neuralAudioRef = useRef<HTMLAudioElement | null>(null);
+  const neuralAudioUrlRef = useRef<string | null>(null);
+  const neuralTtsAbortRef = useRef<AbortController | null>(null);
 
   const activeProfile = useMemo(() => {
     if (!profile) return null;
     return createTwinProfile(simulatedInputs ?? profile.inputs, profile.fhirSource);
   }, [profile, simulatedInputs]);
+
+  const stopNeuralSpeech = useCallback(() => {
+    neuralTtsAbortRef.current?.abort();
+    neuralTtsAbortRef.current = null;
+    neuralAudioRef.current?.pause();
+    neuralAudioRef.current = null;
+
+    if (neuralAudioUrlRef.current) {
+      URL.revokeObjectURL(neuralAudioUrlRef.current);
+      neuralAudioUrlRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -67,8 +82,21 @@ export default function TwinPage() {
       speechPendingRef.current = '';
       speechActiveRef.current = false;
       speechCompleteRef.current = null;
+      stopNeuralSpeech();
       window.speechSynthesis?.cancel();
     };
+  }, [stopNeuralSpeech]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
+
+    const hydrateVoices = () => {
+      window.speechSynthesis.getVoices();
+    };
+
+    hydrateVoices();
+    window.speechSynthesis.addEventListener?.('voiceschanged', hydrateVoices);
+    return () => window.speechSynthesis.removeEventListener?.('voiceschanged', hydrateVoices);
   }, []);
 
   useEffect(() => {
@@ -96,8 +124,9 @@ export default function TwinPage() {
     speechPendingRef.current = '';
     speechActiveRef.current = false;
     speechCompleteRef.current = null;
+    stopNeuralSpeech();
     window.speechSynthesis?.cancel();
-  }, []);
+  }, [stopNeuralSpeech]);
 
   const finishSpeechIfDone = useCallback((session: number) => {
     if (session !== speechSessionRef.current || speechActiveRef.current || speechQueueRef.current.length > 0 || speechPendingRef.current.trim()) return;
@@ -126,7 +155,9 @@ export default function TwinPage() {
       speechActiveRef.current = true;
       utterance.onend = () => {
         speechActiveRef.current = false;
-        drainSpeechQueue(session);
+        window.setTimeout(() => {
+          drainSpeechQueue(session);
+        }, 110);
       };
       utterance.onerror = () => {
         speechActiveRef.current = false;
@@ -160,6 +191,61 @@ export default function TwinPage() {
       if (final) finishSpeechIfDone(speechSessionRef.current);
     },
     [drainSpeechQueue, finishSpeechIfDone]
+  );
+
+  const playNeuralSpeech = useCallback(
+    async (text: string) => {
+      if (typeof window === 'undefined') return true;
+      const cleanText = cleanSpeechText(text);
+      if (!cleanText) return true;
+
+      const controller = new AbortController();
+      neuralTtsAbortRef.current = controller;
+      setOrbState('speaking');
+      setIsSpeaking(true);
+
+      try {
+        const response = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: cleanText }),
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          setToast(await getTtsErrorMessage(response));
+          return true;
+        }
+
+        const audioBlob = await response.blob();
+        if (controller.signal.aborted) return true;
+
+        const audioUrl = URL.createObjectURL(audioBlob);
+        neuralAudioUrlRef.current = audioUrl;
+        const audio = new Audio(audioUrl);
+        neuralAudioRef.current = audio;
+
+        await new Promise<void>((resolve, reject) => {
+          audio.onended = () => resolve();
+          audio.onerror = () => reject(new Error('TTS audio playback failed'));
+          audio.play().catch(reject);
+        });
+
+        return true;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return true;
+        setToast('Voice synthesis is unavailable right now. Check Kokoro install, OpenAI quota, or the dev server env.');
+        return true;
+      } finally {
+        if (neuralTtsAbortRef.current === controller) neuralTtsAbortRef.current = null;
+        neuralAudioRef.current = null;
+        if (neuralAudioUrlRef.current) {
+          URL.revokeObjectURL(neuralAudioUrlRef.current);
+          neuralAudioUrlRef.current = null;
+        }
+      }
+    },
+    []
   );
 
   const sendMessage = useCallback(
@@ -201,8 +287,8 @@ export default function TwinPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemPrompt:
-              source === 'voice'
-                ? `${systemPrompt}\n\nVoice mode: reply like spoken conversation. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
+              shouldSpeakReply
+                ? `${systemPrompt}\n\nVoice mode: always answer in English, even if the user's transcript contains French. Override the same-language rule for voice messages. Reply like natural spoken conversation. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
                 : systemPrompt,
             messages: outgoing
           })
@@ -234,18 +320,23 @@ export default function TwinPage() {
             const parsed = JSON.parse(data) as { text: string };
             fullResponse += parsed.text;
             replaceLastAssistantMessage(fullResponse);
-            if (shouldSpeakReply) {
-              queueSpeech(parsed.text);
-            }
           }
         }
 
         if (shouldSpeakReply && fullResponse.trim()) {
-          queueSpeech('', true, () => {
-            setIsSpeaking(false);
-            setOrbState('idle');
-            setVoiceFocusActive(false);
-          });
+          const spokeWithNeuralVoice = await playNeuralSpeech(fullResponse);
+          if (!spokeWithNeuralVoice) {
+            queueSpeech(fullResponse, true, () => {
+              setIsSpeaking(false);
+              setOrbState('idle');
+              setVoiceFocusActive(false);
+            });
+            return;
+          }
+
+          setIsSpeaking(false);
+          setOrbState('idle');
+          setVoiceFocusActive(false);
         } else if (source === 'voice') {
           setOrbState('idle');
           setVoiceFocusActive(false);
@@ -258,11 +349,20 @@ export default function TwinPage() {
         replaceLastAssistantMessage(fallback);
         if (shouldSpeakReply) {
           stopSpeech();
-          queueSpeech(fallback, true, () => {
+          const spokeWithNeuralVoice = await playNeuralSpeech(fallback);
+          if (!spokeWithNeuralVoice) {
+            queueSpeech(fallback, true, () => {
+              setIsSpeaking(false);
+              setOrbState('idle');
+              setVoiceFocusActive(false);
+            });
+            return;
+          }
+
             setIsSpeaking(false);
             setOrbState('idle');
             setVoiceFocusActive(false);
-          });
+          return;
         } else if (source === 'voice') {
           setOrbState('error');
           window.setTimeout(() => {
@@ -277,7 +377,7 @@ export default function TwinPage() {
         setIsStreaming(false);
       }
     },
-    [activeProfile, addMessage, extractHabitChange, isStreaming, queueSpeech, replaceLastAssistantMessage, stopSpeech, voiceRepliesEnabled]
+    [activeProfile, addMessage, extractHabitChange, isStreaming, playNeuralSpeech, queueSpeech, replaceLastAssistantMessage, stopSpeech, voiceRepliesEnabled]
   );
 
   const toggleVoiceReplies = useCallback(() => {
@@ -457,19 +557,23 @@ export default function TwinPage() {
 
 function createSpeechUtterance(text: string) {
   if (typeof window === 'undefined') return null;
-  const cleanText = cleanSpeechText(text);
+  const cleanText = softenSpeechText(cleanSpeechText(text));
   if (!cleanText) return null;
 
   const utterance = new SpeechSynthesisUtterance(cleanText);
-  utterance.lang = navigator.language || 'fr-FR';
-  utterance.rate = 0.99;
-  utterance.pitch = 1.08;
-  utterance.volume = 0.98;
+  utterance.lang = 'en-US';
+  utterance.rate = 0.9;
+  utterance.pitch = 1;
+  utterance.volume = 0.9;
 
-  const preferredVoice = chooseFemaleVoice(window.speechSynthesis.getVoices(), utterance.lang);
+  const preferredVoice = chooseEnglishVoice(window.speechSynthesis.getVoices());
   if (preferredVoice) {
     utterance.voice = preferredVoice;
     utterance.lang = preferredVoice.lang;
+    const settings = getEnglishVoiceSettings(preferredVoice);
+    utterance.rate = settings.rate;
+    utterance.pitch = settings.pitch;
+    utterance.volume = settings.volume;
   }
 
   return utterance;
@@ -522,6 +626,13 @@ function cleanSpeechText(text: string) {
   return text
     .replace(/https?:\/\/\S+/g, '')
     .replace(/[*_`>#~[\](){}]/g, ' ')
+    .replace(/\bBP\b/g, 'blood pressure')
+    .replace(/\bBMI\b/g, 'B M I')
+    .replace(/\bHDL\b/g, 'H D L')
+    .replace(/\bLDL\b/g, 'L D L')
+    .replace(/\bASCVD\b/g, 'A S C V D')
+    .replace(/(\d+(?:\.\d+)?)\s*\/\s*100/g, '$1 out of 100')
+    .replace(/(\d+(?:\.\d+)?)\s*%/g, '$1 percent')
     .replace(/(?:\uD83C[\uDF00-\uDFFF]|\uD83D[\uDC00-\uDEFF]|\uD83E[\uDD00-\uDDFF])/g, '')
     .replace(/[\u2600-\u27BF]/g, '')
     .replace(/[⚠⚡∞•→←↑↓—–]/g, ' ')
@@ -529,30 +640,38 @@ function cleanSpeechText(text: string) {
     .trim();
 }
 
-function chooseFemaleVoice(voices: SpeechSynthesisVoice[], language: string) {
-  const languageCode = language.slice(0, 2);
-  const candidates = voices.filter((voice) => voice.lang === language || voice.lang.startsWith(languageCode));
-  const femaleVoiceNames = [
-    'ava',
-    'allison',
-    'ava premium',
+function softenSpeechText(text: string) {
+  return text
+    .replace(/\s*:\s*/g, ', ')
+    .replace(/\s*;\s*/g, ', ')
+    .replace(/\s+but\s+/gi, ', but ')
+    .replace(/\s+because\s+/gi, ', because ')
+    .replace(/\s+so\s+/gi, ', so ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function chooseEnglishVoice(voices: SpeechSynthesisVoice[]) {
+  const candidates = voices.filter((voice) => voice.lang.toLowerCase() === 'en-us' || voice.lang.toLowerCase().startsWith('en-'));
+  const naturalVoiceNames = [
     'samantha',
-    'victoria',
+    'ava premium',
+    'ava',
+    'nicky',
+    'zoe',
+    'allison',
     'karen',
     'moira',
     'tessa',
     'serena',
-    'amelie',
-    'amélie',
-    'aurelie',
-    'aurélie',
-    'audrey',
-    'julie',
-    'hortense',
-    'marie',
-    'celine',
-    'céline',
-    'thomasina',
+    'victoria',
+    'alex',
+    'daniel',
+    'google us english',
+    'google uk english female',
+    'microsoft jenny',
+    'microsoft aria',
+    'microsoft guy',
     'zira',
     'susan',
     'female',
@@ -560,12 +679,61 @@ function chooseFemaleVoice(voices: SpeechSynthesisVoice[], language: string) {
     'girl'
   ];
 
+  const scored = candidates
+    .filter((voice) => !isLowQualityVoice(voice))
+    .map((voice) => ({ voice, score: scoreEnglishVoice(voice, naturalVoiceNames) }))
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.voice ?? candidates[0] ?? voices.find((voice) => voice.lang.toLowerCase().startsWith('en-')) ?? voices[0];
+}
+
+function scoreEnglishVoice(voice: SpeechSynthesisVoice, preferredNames: string[]) {
+  const name = voice.name.toLowerCase();
+  const language = voice.lang.toLowerCase();
+  const preferredIndex = preferredNames.findIndex((preferredName) => name.includes(preferredName));
+  let score = 0;
+
+  if (language === 'en-us') score += 40;
+  if (voice.localService) score += 10;
+  if (preferredIndex >= 0) score += 90 - preferredIndex * 2;
+  if (/(samantha|ava|nicky|zoe|allison|karen|moira|tessa|serena)/i.test(name)) score += 18;
+  if (/(premium|enhanced|neural|natural|online)/i.test(name)) score += 32;
+  if (/(google|microsoft|apple)/i.test(name)) score += 12;
+  if (name.includes('alex')) score -= 6;
+
+  return score;
+}
+
+function getEnglishVoiceSettings(voice: SpeechSynthesisVoice) {
+  const name = voice.name.toLowerCase();
+  if (/(samantha|ava|nicky|zoe|allison|karen|moira|tessa|serena)/i.test(name)) return { rate: 0.88, pitch: 1.01, volume: 0.88 };
+  if (name.includes('alex')) return { rate: 0.87, pitch: 0.94, volume: 0.9 };
+  if (/(microsoft|google|neural|natural|enhanced|premium)/i.test(name)) return { rate: 0.9, pitch: 0.98, volume: 0.9 };
+  return { rate: 0.9, pitch: 1, volume: 0.9 };
+}
+
+function isLowQualityVoice(voice: SpeechSynthesisVoice) {
+  const name = voice.name.toLowerCase();
   return (
-    candidates.find((voice) => femaleVoiceNames.some((name) => voice.name.toLowerCase().includes(name))) ??
-    voices.find((voice) => femaleVoiceNames.some((name) => voice.name.toLowerCase().includes(name))) ??
-    candidates[0] ??
-    voices[0]
+    name.includes('compact') ||
+    name.includes('whisper') ||
+    name.includes('novelty') ||
+    name.includes('bad news') ||
+    name.includes('bells') ||
+    name.includes('bubbles') ||
+    name.includes('cellos') ||
+    name.includes('zarvox')
   );
+}
+
+async function getTtsErrorMessage(response: Response) {
+  const fallback = response.headers.get('X-FutureMe-TTS-Error') ?? `Voice synthesis failed with status ${response.status}`;
+  try {
+    const body = (await response.json()) as { kokoro?: string; openai?: string; error?: string };
+    return body.kokoro ?? body.openai ?? body.error ?? fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function getHabitChangeToast(before: HealthInputs | null, after: HealthInputs | null) {

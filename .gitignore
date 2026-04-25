@@ -7,8 +7,10 @@ dist
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+tsconfig.tsbuildinfo
 .DS_Store
 .venv-anny
+.venv-kokoro
 .anny-cache
 data/synthea-src/
 data/synthea-output/

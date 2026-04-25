@@ -75,7 +75,7 @@ export function VoiceInput({
     const recognition = new Recognition();
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = navigator.language || 'en-US';
+    recognition.lang = 'en-US';
     finalTranscriptRef.current = '';
     latestTranscriptRef.current = '';
     recognitionRef.current = recognition;
