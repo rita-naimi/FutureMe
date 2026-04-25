@@ -42,9 +42,10 @@ const MILESTONE_MESSAGES: Record<number, string> = {
 
 interface DailyGoalCardProps {
   recommendedHabitKey?: string;
+  className?: string;
 }
 
-export function DailyGoalCard({ recommendedHabitKey }: DailyGoalCardProps) {
+export function DailyGoalCard({ recommendedHabitKey, className = '' }: DailyGoalCardProps) {
   const dailyGoal = useFutureMeStore((state) => state.dailyGoal);
   const setDailyGoal = useFutureMeStore((state) => state.setDailyGoal);
   const logCheckIn = useFutureMeStore((state) => state.logCheckIn);
@@ -130,7 +131,7 @@ export function DailyGoalCard({ recommendedHabitKey }: DailyGoalCardProps) {
         <button
           type="button"
           onClick={() => setSheetMode('goal')}
-          className="w-full rounded-[1.25rem] border border-dashed border-slate-300/90 bg-white/45 p-4 text-center transition hover:-translate-y-0.5 hover:border-twin-dark/45 hover:bg-white/70 dark:border-white/15 dark:bg-white/[0.035] dark:hover:border-twin/40 dark:hover:bg-white/[0.06]"
+          className={`w-full rounded-[1.25rem] border border-dashed border-slate-300/90 bg-white/45 p-4 text-center transition hover:-translate-y-0.5 hover:border-twin-dark/45 hover:bg-white/70 dark:border-white/15 dark:bg-white/[0.035] dark:hover:border-twin/40 dark:hover:bg-white/[0.06] ${className}`}
         >
           <Target className="mx-auto h-4 w-4 text-twin-dark dark:text-twin" />
           <p className="mt-2 text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Set a daily goal</p>
@@ -163,7 +164,7 @@ export function DailyGoalCard({ recommendedHabitKey }: DailyGoalCardProps) {
         onKeyDown={(event) => {
           if (event.key === 'Enter' || event.key === ' ') openCheckIn();
         }}
-        className={`relative cursor-pointer overflow-hidden rounded-[1.25rem] border p-4 shadow-[0_12px_42px_rgba(15,23,42,0.07)] outline-none transition dark:shadow-black/20 ${
+        className={`relative cursor-pointer overflow-hidden rounded-[1.25rem] border p-4 shadow-[0_12px_42px_rgba(15,23,42,0.07)] outline-none transition dark:shadow-black/20 ${className} ${
           checkedToday
             ? 'border-black/10 bg-white/80 dark:border-white/10 dark:bg-navy-900/80'
             : 'border-amber-300/50 bg-amber-50/75 dark:border-amber-300/20 dark:bg-amber-300/[0.06]'

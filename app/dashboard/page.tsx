@@ -158,10 +158,16 @@ export default function DashboardPage() {
               />
             </div>
 
-            <div className="grid gap-3 xl:col-span-12 xl:grid-cols-[minmax(22rem,1.15fr)_minmax(20rem,0.95fr)_minmax(16rem,0.7fr)]">
-              <LeverageChangeCard priority={dashboard.priority} />
-              <DailyGoalCard recommendedHabitKey={getRecommendedHabitKey(dashboard.priority.title)} />
-              <DigitalTwinChatCard />
+            <div className="grid gap-4 xl:col-span-12 xl:grid-cols-12">
+              <div className="h-full xl:col-span-3">
+                <LeverageChangeCard priority={dashboard.priority} />
+              </div>
+              <div className="h-full xl:col-span-3">
+                <DailyGoalCard className="h-full min-h-[14.5rem]" recommendedHabitKey={getRecommendedHabitKey(dashboard.priority.title)} />
+              </div>
+              <div className="h-full xl:col-span-6">
+                <DigitalTwinChatCard />
+              </div>
             </div>
           </div>
         </div>
@@ -172,7 +178,7 @@ export default function DashboardPage() {
 
 function LeverageChangeCard({ priority }: { priority: Priority }) {
   return (
-    <section className={`${CARD} flex h-full min-h-[15.5rem] flex-col border-l-[4px] border-l-twin-dark p-3.5 dark:border-l-twin`}>
+    <section className={`${CARD} flex h-full min-h-[14.5rem] flex-col border-l-[4px] border-l-twin-dark p-3.5 dark:border-l-twin`}>
       <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-twin-dark dark:text-twin">
         Highest leverage
       </p>
@@ -377,24 +383,26 @@ function HabitRadarCard({
 
 function DigitalTwinChatCard() {
   return (
-    <section className={`${CARD} relative flex h-full min-h-[15.5rem] flex-col justify-between overflow-hidden p-3.5`}>
-      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-twin-dark/10 dark:bg-twin/10" />
-      <div className="relative">
-        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-twin-dark/25 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
-          <MessageCircle className="h-4 w-4" />
+    <section className={`${CARD} relative flex h-full min-h-[14.5rem] flex-col justify-between overflow-hidden p-4 sm:p-5`}>
+      <div className="pointer-events-none absolute -right-12 -top-12 h-40 w-40 rounded-full bg-twin-dark/10 dark:bg-twin/10" />
+      <div className="relative grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border border-twin-dark/25 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
+          <MessageCircle className="h-6 w-6" />
         </div>
-        <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-twin-dark dark:text-twin">Digital twin</p>
-        <h2 className="mt-1.5 whitespace-nowrap font-display text-xl font-bold leading-tight text-slate-950 dark:text-white">
-          Talk through your next move.
-        </h2>
-        <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-          Ask your twin what these habits mean, what to change first, or how today&apos;s choices affect your future.
-        </p>
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-twin-dark dark:text-twin">Digital twin</p>
+          <h2 className="mt-1.5 whitespace-nowrap font-display text-2xl font-bold leading-tight text-slate-950 dark:text-white">
+            Talk through your next move.
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+            Ask your twin what these habits mean, what to change first, or how today&apos;s choices affect your future.
+          </p>
+        </div>
       </div>
 
       <Link
         href="/twin"
-        className="relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-twin-dark px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-twin-deeper dark:bg-twin dark:text-navy-950 dark:hover:bg-twin-dark"
+        className="relative mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-twin-dark px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-twin-deeper dark:bg-twin dark:text-navy-950 dark:hover:bg-twin-dark sm:w-auto sm:self-start"
       >
         Open chatbot
         <ArrowRight className="h-3.5 w-3.5" />
