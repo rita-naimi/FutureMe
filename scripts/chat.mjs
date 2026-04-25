@@ -52,7 +52,7 @@ const MES_DONNEES = {
 };
 
 const PIPELINE_URL = process.env.PIPELINE_URL || 'http://localhost:3000/api/pipeline';
-const MODEL_ID = process.env.HF_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
+const MODEL_ID = process.env.HF_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';  //meta-llama/Llama-3.1-8B-Instruct
 const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
 
 // ─── couleurs ANSI ──────────────────────────────────────────

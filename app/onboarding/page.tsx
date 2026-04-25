@@ -64,6 +64,116 @@ export default function OnboardingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  const toNumberOrFallback = (value: unknown, fallback: number) => {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  };
+
+  const toNumberOrUndefined = (value: unknown) => {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  };
+
+  const toBooleanOrFallback = (value: unknown, fallback: boolean) => (typeof value === 'boolean' ? value : fallback);
+
+  const toStringOrFallback = (value: unknown, fallback: string) => {
+    if (typeof value !== 'string') return fallback;
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : fallback;
+  };
+
+  const toArrayOfStrings = (value: unknown, fallback: string[]) => {
+    if (!Array.isArray(value)) return fallback;
+    return value.filter((entry): entry is string => typeof entry === 'string');
+  };
+
+  const toSex = (value: unknown): HealthInputs['sex'] =>
+    value === 'male' || value === 'female' || value === 'other' ? value : defaults.sex;
+
+  const toSmokingStatus = (value: unknown): HealthInputs['smokingStatus'] =>
+    value === 'never' || value === 'former' || value === 'current' ? value : defaults.smokingStatus;
+
+  const buildInputsFromUpload = (rawInputs: WearableImportPayload['inputs']): HealthInputs => {
+    const inputs = rawInputs && typeof rawInputs === 'object' ? rawInputs : {};
+    const typedInputs = inputs as Record<string, unknown>;
+
+    return {
+      name: toStringOrFallback(typedInputs.name, 'Future You'),
+      age: toNumberOrFallback(typedInputs.age, defaults.age),
+      sex: toSex(typedInputs.sex),
+      heightCm: toNumberOrFallback(typedInputs.heightCm, defaults.heightCm),
+      weightKg: toNumberOrFallback(typedInputs.weightKg, defaults.weightKg),
+      sleepHours: toNumberOrFallback(typedInputs.sleepHours, defaults.sleepHours),
+      exerciseDaysPerWeek: toNumberOrFallback(typedInputs.exerciseDaysPerWeek, defaults.exerciseDaysPerWeek),
+      dietQuality: toNumberOrFallback(typedInputs.dietQuality, defaults.dietQuality),
+      stressLevel: toNumberOrFallback(typedInputs.stressLevel, defaults.stressLevel),
+      smokingStatus: toSmokingStatus(typedInputs.smokingStatus),
+      alcoholDrinksPerWeek: toNumberOrFallback(typedInputs.alcoholDrinksPerWeek, defaults.alcoholDrinksPerWeek),
+      familyHistoryHeart: toBooleanOrFallback(typedInputs.familyHistoryHeart, defaults.familyHistoryHeart),
+      familyHistoryDiabetes: toBooleanOrFallback(typedInputs.familyHistoryDiabetes, defaults.familyHistoryDiabetes),
+      familyHistoryCancer: toBooleanOrFallback(typedInputs.familyHistoryCancer, defaults.familyHistoryCancer),
+      existingConditions: toArrayOfStrings(typedInputs.existingConditions, defaults.existingConditions)
+    };
+  };
+
+  const buildClinicalMarkersFromUpload = (rawMarkers: WearableImportPayload['clinicalMarkers']) => {
+    if (!rawMarkers || typeof rawMarkers !== 'object') return undefined;
+    const markers: ClinicalMarkers = {};
+    const source = rawMarkers as Record<string, unknown>;
+
+    const totalCholesterolMgDl = toNumberOrUndefined(source.totalCholesterolMgDl);
+    const hdlMgDl = toNumberOrUndefined(source.hdlMgDl);
+    const systolicBloodPressureMmHg = toNumberOrUndefined(source.systolicBloodPressureMmHg);
+
+    if (totalCholesterolMgDl !== undefined) markers.totalCholesterolMgDl = totalCholesterolMgDl;
+    if (hdlMgDl !== undefined) markers.hdlMgDl = hdlMgDl;
+    if (systolicBloodPressureMmHg !== undefined) markers.systolicBloodPressureMmHg = systolicBloodPressureMmHg;
+
+    if (typeof source.onBloodPressureTreatment === 'boolean') {
+      markers.onBloodPressureTreatment = source.onBloodPressureTreatment;
+    }
+
+    if (typeof source.hasDiabetes === 'boolean') {
+      markers.hasDiabetes = source.hasDiabetes;
+    }
+
+    return Object.keys(markers).length > 0 ? markers : undefined;
+  };
+
+  const handleWearableImport = async (payload: WearableImportPayload) => {
+    if (submitting) return;
+    setSubmitError(null);
+    setSubmitting(true);
+
+    try {
+      const inputs = buildInputsFromUpload(payload.inputs);
+      const clinicalMarkers = buildClinicalMarkersFromUpload(payload.clinicalMarkers);
+
+      if (useBackendPipeline) {
+        const analysis = await runPipelineFromClient({
+          inputs,
+          yearsOfHistory: 5,
+          includePubMed: true,
+          enableLlmSummary: true,
+          kNearest: 3,
+          clinicalMarkers
+        });
+        setProfile(analysis.profile);
+        setPipelineAnalysis(analysis);
+      } else {
+        setProfile(createTwinProfile(inputs, 'wearable-import'));
+        setPipelineAnalysis(null);
+      }
+
+      router.push('/awakening');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Wearable import failed';
+      setSubmitError(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const {
     control,
     register,

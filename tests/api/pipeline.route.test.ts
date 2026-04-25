@@ -130,4 +130,44 @@ describe('POST /api/pipeline', () => {
     // Without cache: 6 PubMed calls for 2 requests. With cache, second request should reuse cached articles.
     expect(fetchMock.mock.calls.length).toBe(3);
   });
+
+  it('accepts apple health payloads without questionnaire inputs', async () => {
+    const response = await POST(
+      buildRequest({
+        appleHealth: {
+          inputs: {
+            name: 'Apple User',
+            age: 40,
+            sex: 'female',
+            heightCm: 170,
+            weightKg: 70,
+            sleepHours: 7,
+            exerciseDaysPerWeek: 3,
+            dietQuality: null,
+            stressLevel: null,
+            smokingStatus: null,
+            alcoholDrinksPerWeek: 2,
+            familyHistoryHeart: null,
+            familyHistoryDiabetes: null,
+            familyHistoryCancer: null,
+            existingConditions: []
+          },
+          clinicalMarkers: {
+            totalCholesterolMgDl: null,
+            hdlMgDl: null,
+            systolicBloodPressureMmHg: null,
+            onBloodPressureTreatment: null,
+            hasDiabetes: null
+          }
+        },
+        includePubMed: false,
+        enableLlmSummary: false
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as { profile: { inputs: { name: string; dietQuality: number } } };
+    expect(payload.profile.inputs.name).toBe('Apple User');
+    expect(payload.profile.inputs.dietQuality).toBe(3);
+  });
 });
