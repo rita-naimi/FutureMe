@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { ArrowDown, ArrowRight, ArrowUp, Infinity as InfinityIcon, Mail, SlidersHorizontal } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, ChevronDown, Infinity as InfinityIcon, Mail, SlidersHorizontal } from 'lucide-react';
 import { AnimatePresence, animate, motion } from 'framer-motion';
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { PageTransition } from '@/components/PageTransition';
 import TimeCapsule from '@/components/TimeCapsule';
 import type { HealthInputs, RiskScores } from '@/lib/fhir';
@@ -134,94 +135,99 @@ export default function SimulatePage() {
   const currentFuture = projectFuture(profile.inputs.age, currentBioAge, currentRisks, projectionYears);
   const simulatedFuture = projectFuture(profile.inputs.age, simulatedBioAge, simulatedRisks, projectionYears);
   const futureBioAgeDelta = simulatedFuture.biologicalAge - currentFuture.biologicalAge;
+  const biomarkerCards = buildSimulationBiomarkerCards(profile.inputs, simulatedInputs);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-ivory to-ivory-dark px-5 pb-32 pt-8 dark:bg-navy-950 dark:bg-none sm:px-8 lg:px-10">
       <PageTransition>
-        <div className="mx-auto grid min-h-[calc(100vh-10rem)] max-w-7xl gap-6 lg:grid-cols-[minmax(23rem,0.45fr)_minmax(0,0.55fr)]">
-          <section className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.09)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20 sm:p-7">
-            <div className="mb-7">
-              <p className="text-sm font-medium text-twin-dark dark:text-twin">Simulation lab</p>
-              <h1 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">Change your habits</h1>
-              <p className="mt-2 text-sm text-slate-500 dark:text-slate-500">Drag to rewrite your future.</p>
-            </div>
-
-            <div className="space-y-4">
-              {SLIDERS.map(({ key, label, min, max, unit, step }) => {
-                const value = Number(simulatedInputs[key]);
-                const original = Number(profile.inputs[key]);
-                return (
-                  <SliderRow
-                    key={key}
-                    label={label}
-                    value={value}
-                    original={original}
-                    min={min}
-                    max={max}
-                    step={step}
-                    unit={unit}
-                    onChange={(nextValue) => handleChange(key, nextValue)}
-                  />
-                );
-              })}
-
-              <SmokingToggle
-                value={simulatedInputs.smokingStatus}
-                original={profile.inputs.smokingStatus}
-                onChange={(nextValue) => handleChange('smokingStatus', nextValue)}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setSimulatedInputs(profile.inputs)}
-              className="mt-7 text-sm font-medium text-slate-500 transition hover:text-twin-dark dark:text-slate-500 dark:hover:text-twin"
-            >
-              ↺ Reset all to baseline
-            </button>
-          </section>
-
-          <section className="relative overflow-hidden rounded-[1.7rem] border border-black/10 bg-white/70 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20 sm:p-7">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-twin-dark/8 dark:bg-twin/[0.06]" />
-            <div className="relative">
+        <div className="mx-auto max-w-7xl space-y-6">
+          <div className="grid min-h-[calc(100vh-10rem)] gap-6 lg:grid-cols-[minmax(23rem,0.45fr)_minmax(0,0.55fr)]">
+            <section className="rounded-[1.7rem] border border-black/10 bg-white/80 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.09)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20 sm:p-7">
               <div className="mb-7">
-                <p className="text-sm font-medium text-twin-dark dark:text-twin">Your updated future</p>
-                <h2 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">The payoff, live.</h2>
+                <p className="text-sm font-medium text-twin-dark dark:text-twin">Simulation lab</p>
+                <h1 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">Change your habits</h1>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-500">Drag to rewrite your future.</p>
               </div>
 
-              <HorizonControl value={projectionYears} onChange={setProjectionYears} />
-
-              <div className="grid items-stretch gap-5 xl:grid-cols-[0.88fr_1fr]">
-                <TwinAvatarViewer
-                  inputs={simulatedInputs}
-                  biologicalAge={simulatedFuture.biologicalAge}
-                  healthScore={simulatedFuture.healthScore}
-                  projectionYears={projectionYears}
-                  chronologicalAge={simulatedFuture.chronologicalAge}
-                />
-                <div className="grid gap-4 xl:grid-rows-[1fr_auto]">
-                  <BiologicalImpactCard
-                    hasChanges={hasChanges}
-                    bioAgeDelta={futureBioAgeDelta}
-                    currentBioAge={currentFuture.biologicalAge}
-                    simulatedBioAge={simulatedFuture.biologicalAge}
-                    projectionYears={projectionYears}
-                  />
-                  <FutureMessageLauncher onOpen={() => setTimeCapsuleOpen(true)} />
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                {RISK_ROWS.map(([label, key]) => {
-                  const current = key === 'longevityDrag' ? 100 - currentRisks.longevity : currentRisks[key as keyof RiskScores];
-                  const simulated = key === 'longevityDrag' ? 100 - simulatedRisks.longevity : simulatedRisks[key as keyof RiskScores];
-                  return <RiskDeltaCard key={label} label={label} current={current} simulated={simulated} />;
+              <div className="space-y-4">
+                {SLIDERS.map(({ key, label, min, max, unit, step }) => {
+                  const value = Number(simulatedInputs[key]);
+                  const original = Number(profile.inputs[key]);
+                  return (
+                    <SliderRow
+                      key={key}
+                      label={label}
+                      value={value}
+                      original={original}
+                      min={min}
+                      max={max}
+                      step={step}
+                      unit={unit}
+                      onChange={(nextValue) => handleChange(key, nextValue)}
+                    />
+                  );
                 })}
+
+                <SmokingToggle
+                  value={simulatedInputs.smokingStatus}
+                  original={profile.inputs.smokingStatus}
+                  onChange={(nextValue) => handleChange('smokingStatus', nextValue)}
+                />
               </div>
 
-              <TwinReactionCard loading={reactionLoading} reaction={reaction} />
-            </div>
-          </section>
+              <button
+                type="button"
+                onClick={() => setSimulatedInputs(profile.inputs)}
+                className="mt-7 text-sm font-medium text-slate-500 transition hover:text-twin-dark dark:text-slate-500 dark:hover:text-twin"
+              >
+                ↺ Reset all to baseline
+              </button>
+            </section>
+
+            <section className="relative overflow-hidden rounded-[1.7rem] border border-black/10 bg-white/70 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20 sm:p-7">
+              <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-twin-dark/8 dark:bg-twin/[0.06]" />
+              <div className="relative">
+                <div className="mb-7">
+                  <p className="text-sm font-medium text-twin-dark dark:text-twin">Your updated future</p>
+                  <h2 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">The payoff, live.</h2>
+                </div>
+
+                <HorizonControl value={projectionYears} onChange={setProjectionYears} />
+
+                <div className="grid items-stretch gap-5 xl:grid-cols-[0.88fr_1fr]">
+                  <TwinAvatarViewer
+                    inputs={simulatedInputs}
+                    biologicalAge={simulatedFuture.biologicalAge}
+                    healthScore={simulatedFuture.healthScore}
+                    projectionYears={projectionYears}
+                    chronologicalAge={simulatedFuture.chronologicalAge}
+                  />
+                  <div className="grid gap-4 xl:grid-rows-[1fr_auto]">
+                    <BiologicalImpactCard
+                      hasChanges={hasChanges}
+                      bioAgeDelta={futureBioAgeDelta}
+                      currentBioAge={currentFuture.biologicalAge}
+                      simulatedBioAge={simulatedFuture.biologicalAge}
+                      projectionYears={projectionYears}
+                    />
+                    <FutureMessageLauncher onOpen={() => setTimeCapsuleOpen(true)} />
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {RISK_ROWS.map(([label, key]) => {
+                    const current = key === 'longevityDrag' ? 100 - currentRisks.longevity : currentRisks[key as keyof RiskScores];
+                    const simulated = key === 'longevityDrag' ? 100 - simulatedRisks.longevity : simulatedRisks[key as keyof RiskScores];
+                    return <RiskDeltaCard key={label} label={label} current={current} simulated={simulated} />;
+                  })}
+                </div>
+
+                <TwinReactionCard loading={reactionLoading} reaction={reaction} />
+              </div>
+            </section>
+          </div>
+
+          <BiomarkerTrendSection cards={biomarkerCards} />
         </div>
 
         <AnimatePresence>
@@ -508,6 +514,307 @@ function RiskBar({ value, valueTone, barTone }: { value: number; valueTone: stri
       <span className={`w-8 text-right font-mono text-xs ${valueTone}`}>{value}</span>
     </div>
   );
+}
+
+type BiomarkerTrendPoint = {
+  age: number;
+  current: number;
+  simulated: number;
+};
+
+type BiomarkerTrendCard = {
+  label: string;
+  description: string;
+  unit: string;
+  data: BiomarkerTrendPoint[];
+  betterWhenLower: boolean;
+};
+
+function BiomarkerTrendSection({ cards }: { cards: BiomarkerTrendCard[] }) {
+  return (
+    <details className="group rounded-[1.7rem] border border-black/10 bg-white/75 shadow-[0_24px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20">
+      <summary className="flex cursor-pointer list-none flex-col justify-between gap-4 p-5 marker:hidden sm:flex-row sm:items-center sm:p-7 [&::-webkit-details-marker]:hidden">
+        <div>
+          <p className="text-sm font-medium text-twin-dark dark:text-twin">Biomarker curves</p>
+          <h2 className="mt-2 font-display text-3xl font-bold text-slate-950 dark:text-white">5 bottom trajectories</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">BP trajectory, systolic BP, BMI, total cholesterol, and HDL cholesterol.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold text-slate-600 dark:border-white/10 dark:bg-white/[0.06] dark:text-slate-300">
+            Click to open
+          </span>
+          <span className="flex h-10 w-10 items-center justify-center rounded-full border border-twin-dark/20 bg-twin-dark/10 text-twin-dark transition group-open:rotate-180 dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
+            <ChevronDown className="h-5 w-5" />
+          </span>
+        </div>
+      </summary>
+
+      <div className="border-t border-black/10 px-5 pb-5 pt-5 dark:border-white/10 sm:px-7 sm:pb-7">
+        <div className="mb-5 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-500">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-5 rounded-full bg-slate-400 dark:bg-slate-600" /> Baseline
+          </span>
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-5 rounded-full bg-twin-dark dark:bg-twin" /> Simulated
+          </span>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          {cards.map((card, index) => (
+            <BiomarkerTrendCard key={card.label} card={card} index={index} />
+          ))}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+function BiomarkerTrendCard({ card, index }: { card: BiomarkerTrendCard; index: number }) {
+  const first = card.data[0];
+  const last = card.data[card.data.length - 1];
+  const delta = last ? last.simulated - last.current : 0;
+  const improved = card.betterWhenLower ? delta < 0 : delta > 0;
+  const neutral = Math.abs(delta) < 0.05;
+  const domain = getBiomarkerTrendDomain(card.data);
+
+  return (
+    <article className="flex min-h-[15rem] flex-col rounded-[1.35rem] border border-black/10 bg-white/72 p-4 dark:border-white/10 dark:bg-white/[0.07]">
+      <div className="flex min-h-[4.8rem] items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-snug text-slate-950 dark:text-white">{card.label}</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-500">{card.description}</p>
+        </div>
+        <div
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+            neutral
+              ? 'border-slate-300 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400'
+              : improved
+                ? 'border-twin-dark/25 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin'
+                : 'border-amber-300/40 bg-amber-500/10 text-amber-700 dark:border-amber-500/25 dark:text-amber-300'
+          }`}
+        >
+          {neutral ? '0' : `${delta > 0 ? '+' : ''}${formatBiomarkerValue(delta)}`}
+        </div>
+      </div>
+
+      <div className="mt-3 h-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={card.data} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
+            <XAxis dataKey="age" hide />
+            <YAxis hide domain={domain} />
+            <Tooltip content={<BiomarkerTrendTooltip unit={card.unit} />} />
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="#94A3B8"
+              strokeWidth={2.4}
+              dot={false}
+              name="Baseline"
+              animationBegin={index * 90}
+              animationDuration={800}
+            />
+            <Line
+              type="monotone"
+              dataKey="simulated"
+              stroke="#00A389"
+              strokeWidth={2.8}
+              dot={false}
+              name="Simulated"
+              animationBegin={index * 90 + 120}
+              animationDuration={850}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-auto flex items-end justify-between gap-3 pt-3 text-xs">
+        <div>
+          <p className="font-medium text-slate-400 dark:text-slate-500">Age {first?.age} start</p>
+          <p className="font-mono text-slate-700 dark:text-slate-300">
+            {formatBiomarkerValue(first?.current ?? 0)}
+            <span className="ml-1 text-slate-400">{card.unit}</span>
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-medium text-slate-400 dark:text-slate-500">Age {last?.age} projected</p>
+          <p className="font-mono text-twin-dark dark:text-twin">
+            {formatBiomarkerValue(last?.simulated ?? 0)}
+            <span className="ml-1 text-slate-400">{card.unit}</span>
+          </p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function BiomarkerTrendTooltip({
+  active,
+  payload,
+  label,
+  unit
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; color: string; name: string }>;
+  label?: number;
+  unit: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-2xl border border-black/10 bg-white p-3 text-sm shadow-xl dark:border-white/10 dark:bg-navy-900">
+      <p className="mb-1 font-medium text-slate-950 dark:text-white">Age {label}</p>
+      {payload.map((item) => (
+        <p key={item.name} style={{ color: item.color }}>
+          {item.name}: {formatBiomarkerValue(item.value)} {unit}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function buildSimulationBiomarkerCards(currentInputs: HealthInputs, simulatedInputs: HealthInputs): BiomarkerTrendCard[] {
+  const current = estimateSimulationBiomarkers(currentInputs);
+  const simulated = estimateSimulationBiomarkers(simulatedInputs);
+
+  return [
+    buildEstimatedBiomarkerCard({
+      label: 'BP trajectory',
+      description: 'Long-term pressure path',
+      unit: 'mmHg',
+      startAge: currentInputs.age,
+      currentStart: current.systolicBloodPressure,
+      simulatedStart: simulated.systolicBloodPressure,
+      currentDrift: 11,
+      simulatedDrift: simulatedInputs.stressLevel < currentInputs.stressLevel || simulatedInputs.exerciseDaysPerWeek > currentInputs.exerciseDaysPerWeek ? 4 : 7,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'Systolic BP',
+      description: 'Baseline vs simulated habits',
+      unit: 'mmHg',
+      startAge: currentInputs.age,
+      currentStart: current.systolicBloodPressure,
+      simulatedStart: simulated.systolicBloodPressure,
+      currentDrift: 8,
+      simulatedDrift: simulatedInputs.stressLevel < currentInputs.stressLevel || simulatedInputs.exerciseDaysPerWeek > currentInputs.exerciseDaysPerWeek ? 3 : 6,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'BMI',
+      description: 'Baseline vs simulated weight',
+      unit: 'BMI',
+      startAge: currentInputs.age,
+      currentStart: current.bmi,
+      simulatedStart: simulated.bmi,
+      currentDrift: 1.2,
+      simulatedDrift: simulatedInputs.exerciseDaysPerWeek > currentInputs.exerciseDaysPerWeek ? -0.4 : 0.6,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'Total cholesterol',
+      description: 'Baseline vs simulated lifestyle',
+      unit: 'mg/dL',
+      startAge: currentInputs.age,
+      currentStart: current.totalCholesterol,
+      simulatedStart: simulated.totalCholesterol,
+      currentDrift: 10,
+      simulatedDrift: simulatedInputs.exerciseDaysPerWeek > currentInputs.exerciseDaysPerWeek || simulatedInputs.dietQuality > currentInputs.dietQuality ? 4 : 8,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'HDL cholesterol',
+      description: 'Baseline vs simulated exercise',
+      unit: 'mg/dL',
+      startAge: currentInputs.age,
+      currentStart: current.hdlCholesterol,
+      simulatedStart: simulated.hdlCholesterol,
+      currentDrift: -2.5,
+      simulatedDrift: simulatedInputs.exerciseDaysPerWeek > currentInputs.exerciseDaysPerWeek ? 1.2 : -1.2,
+      betterWhenLower: false
+    })
+  ];
+}
+
+function buildEstimatedBiomarkerCard({
+  label,
+  description,
+  unit,
+  startAge,
+  currentStart,
+  simulatedStart,
+  currentDrift,
+  simulatedDrift,
+  betterWhenLower
+}: {
+  label: string;
+  description: string;
+  unit: string;
+  startAge: number;
+  currentStart: number;
+  simulatedStart: number;
+  currentDrift: number;
+  simulatedDrift: number;
+  betterWhenLower: boolean;
+}): BiomarkerTrendCard {
+  const endAge = Math.max(80, startAge + 10);
+  const data: BiomarkerTrendPoint[] = [];
+
+  for (let age = startAge; age <= endAge; age += 5) {
+    const progress = (age - startAge) / Math.max(1, endAge - startAge);
+    const eased = progress * progress * (3 - 2 * progress);
+    data.push({
+      age,
+      current: round1(Math.max(0, currentStart + currentDrift * progress)),
+      simulated: round1(Math.max(0, currentStart + (simulatedStart - currentStart) * eased + simulatedDrift * progress))
+    });
+  }
+
+  return {
+    label,
+    description,
+    unit,
+    data,
+    betterWhenLower
+  };
+}
+
+function estimateSimulationBiomarkers(inputs: HealthInputs) {
+  const bmi = inputs.weightKg / Math.pow(inputs.heightCm / 100, 2);
+  const smokerPenalty = inputs.smokingStatus === 'current' ? 12 : inputs.smokingStatus === 'former' ? 4 : 0;
+  const exerciseBenefit = Math.max(0, inputs.exerciseDaysPerWeek - 2) * 1.2;
+  const stressPenalty = Math.max(0, inputs.stressLevel - 2) * 2.4;
+  const dietPenalty = Math.max(0, 4 - inputs.dietQuality) * 5;
+  const alcoholPenalty = Math.max(0, inputs.alcoholDrinksPerWeek - 7) * 0.8;
+
+  return {
+    systolicBloodPressure: round1(
+      clamp(110 + Math.max(0, inputs.age - 25) * 0.42 + Math.max(0, bmi - 24) * 1.3 + smokerPenalty * 0.45 + stressPenalty - exerciseBenefit, 95, 190)
+    ),
+    bmi: round1(bmi),
+    totalCholesterol: round1(
+      clamp(176 + Math.max(0, bmi - 23) * 2.2 + smokerPenalty * 0.9 + dietPenalty + alcoholPenalty - exerciseBenefit * 1.8, 130, 290)
+    ),
+    hdlCholesterol: round1(clamp((inputs.sex === 'female' ? 61 : 52) - Math.max(0, bmi - 24) * 0.9 - smokerPenalty * 0.35 + exerciseBenefit * 0.75, 30, 95))
+  };
+}
+
+function getBiomarkerTrendDomain(data: BiomarkerTrendPoint[]): [number, number] {
+  const values = data.flatMap((point) => [point.current, point.simulated]);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const padding = Math.max(1, (max - min) * 0.16);
+  return [Math.floor(min - padding), Math.ceil(max + padding)];
+}
+
+function formatBiomarkerValue(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function round1(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
 }
 
 function projectFuture(realAge: number, biologicalAge: number, risks: RiskScores, years: number) {
