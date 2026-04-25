@@ -245,7 +245,7 @@ function BiologicalAgeHero({
         {rounded}
       </motion.span>
       <div
-        className={`mt-5 inline-flex max-w-full items-center rounded-full border px-4 py-2 text-sm font-semibold ${
+        className={`mt-5 inline-flex max-w-full items-center justify-center self-center rounded-full border px-4 py-2 text-center text-sm font-semibold ${
           sameAge
             ? 'border-slate-300 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400'
             : isOlder
