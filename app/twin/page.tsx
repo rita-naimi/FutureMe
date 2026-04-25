@@ -77,7 +77,7 @@ export default function TwinPage() {
 
     addMessage({
       role: 'assistant',
-      content: `I've been waiting for you. I remember being ${activeProfile.inputs.age}. I remember thinking there was plenty of time.\n\nThere was time, but not as much as I thought. Ask me anything.`
+      content: `I've been waiting for you. I remember being ${activeProfile.inputs.age}. I remember thinking there was plenty of time. There was time, but not as much as I thought. Ask me anything.`
     });
 
     const flags = getRedFlags(activeProfile.inputs);

@@ -26,7 +26,7 @@ export function ChatBubble({ role, content, inputMode = 'text', streaming = fals
     >
       {!fromUser ? <TwinAvatar size="sm" active={streaming} /> : null}
       <div
-        className={`mx-2 max-w-[82%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+        className={`mx-2 max-w-[82%] whitespace-normal rounded-2xl px-4 py-3 text-sm leading-relaxed ${
           fromUser
             ? 'rounded-br-md bg-twin font-medium text-navy-950'
             : warning

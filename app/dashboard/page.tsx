@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowRight, FileJson } from 'lucide-react';
+import { ArrowRight, FileJson, MessageCircle } from 'lucide-react';
 import { animate, motion, useMotionValue, useTransform } from 'framer-motion';
 import {
   PolarAngleAxis,
@@ -152,39 +152,44 @@ export default function DashboardPage() {
                 />
               </section>
 
+              <HabitRadarCard
+                currentInputs={dashboard.currentInputs}
+                simulatedInputs={dashboard.hasSimulation ? dashboard.activeInputs : null}
+              />
+            </div>
+
+            <div className="grid gap-3 xl:col-span-12 xl:grid-cols-[minmax(22rem,1.15fr)_minmax(20rem,0.95fr)_minmax(16rem,0.7fr)]">
+              <LeverageChangeCard priority={dashboard.priority} />
               <DailyGoalCard recommendedHabitKey={getRecommendedHabitKey(dashboard.priority.title)} />
+              <DigitalTwinChatCard />
             </div>
-
-            <div className="xl:col-span-4">
-              <section className={`${CARD} border-l-[6px] border-l-twin-dark p-5 dark:border-l-twin sm:p-6`}>
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-twin-dark dark:text-twin">
-                  Your highest leverage change
-                </p>
-                <h2 className="mt-4 font-display text-2xl font-bold leading-tight text-slate-950 dark:text-white lg:text-3xl">
-                  {dashboard.priority.title}
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-                  {dashboard.priority.evidence}
-                </p>
-                <Link
-                  href="/simulate"
-                  className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-twin-dark px-5 py-3 text-sm font-semibold text-white transition hover:bg-twin-deeper dark:bg-twin dark:text-navy-950 dark:hover:bg-twin-dark"
-                >
-                  Simulate this change
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
-              </section>
-            </div>
-
-            <HabitRadarCard
-              currentInputs={dashboard.currentInputs}
-              simulatedInputs={dashboard.hasSimulation ? dashboard.activeInputs : null}
-              className="xl:col-span-8"
-            />
           </div>
         </div>
       </PageTransition>
     </main>
+  );
+}
+
+function LeverageChangeCard({ priority }: { priority: Priority }) {
+  return (
+    <section className={`${CARD} flex h-full min-h-[15.5rem] flex-col border-l-[4px] border-l-twin-dark p-3.5 dark:border-l-twin`}>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-twin-dark dark:text-twin">
+        Highest leverage
+      </p>
+      <h2 className="mt-2 font-display text-xl font-bold leading-tight text-slate-950 dark:text-white">
+        {priority.title}
+      </h2>
+      <p className="mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+        {priority.evidence}
+      </p>
+      <Link
+        href="/simulate"
+        className="mt-auto inline-flex items-center justify-center gap-2 rounded-full bg-twin-dark px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-twin-deeper dark:bg-twin dark:text-navy-950 dark:hover:bg-twin-dark"
+      >
+        Simulate this change
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </section>
   );
 }
 
@@ -319,12 +324,10 @@ function RiskCard({
 
 function HabitRadarCard({
   currentInputs,
-  simulatedInputs,
-  className = ''
+  simulatedInputs
 }: {
   currentInputs: HealthInputs;
   simulatedInputs: HealthInputs | null;
-  className?: string;
 }) {
   const currentData = buildHabitData(currentInputs);
   const simulatedData = simulatedInputs ? buildHabitData(simulatedInputs) : null;
@@ -335,30 +338,67 @@ function HabitRadarCard({
   }));
 
   return (
-    <section className={`${CARD} flex h-full min-h-[24rem] flex-col p-5 ${className}`}>
-      <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Your habit fingerprint</h2>
-      <div className="mt-3 min-h-[15rem] flex-1">
+    <section className={`${CARD} flex h-full min-h-[15.5rem] flex-col p-3.5`}>
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-twin-dark dark:text-twin">Pattern</p>
+          <h2 className="mt-1 text-sm font-semibold text-slate-950 dark:text-white">Your habit fingerprint</h2>
+        </div>
+        <div className="rounded-full border border-black/10 bg-white/70 px-2 py-0.5 text-[11px] font-semibold text-slate-500 dark:border-white/10 dark:bg-white/[0.05] dark:text-slate-400">
+          Live profile
+        </div>
+      </div>
+
+      <div className="relative mt-1.5 flex min-h-[9.75rem] flex-1 items-center justify-center">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={chartData} margin={{ top: 8, right: 18, bottom: 8, left: 18 }}>
-            <PolarGrid stroke="rgba(100,116,139,0.22)" />
-            <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 10 }} />
-            <Radar dataKey="current" stroke="#00A389" fill="#00C9A7" fillOpacity={0.15} strokeWidth={2} />
+          <RadarChart data={chartData} margin={{ top: 8, right: 20, bottom: 8, left: 20 }}>
+            <PolarGrid stroke="rgba(100,116,139,0.18)" />
+            <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 9, fontWeight: 600 }} />
+            <Radar dataKey="current" stroke="#00A389" fill="#00C9A7" fillOpacity={0.1} strokeWidth={1.5} />
             {simulatedData ? (
-              <Radar dataKey="simulated" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.1} strokeWidth={2} />
+              <Radar dataKey="simulated" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.07} strokeWidth={1.5} />
             ) : null}
           </RadarChart>
         </ResponsiveContainer>
       </div>
-      <div className="mt-3 flex items-center justify-center gap-4 text-xs font-medium text-slate-500 dark:text-slate-400">
+      <div className="mt-1.5 flex items-center justify-center gap-3 border-t border-black/10 pt-2.5 text-[11px] font-medium text-slate-500 dark:border-white/10 dark:text-slate-400">
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-4 rounded-full bg-[#00A389]" />
+          <span className="h-1.5 w-3.5 rounded-full bg-[#00A389]" />
           You
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2 w-4 rounded-full bg-[#8B5CF6]" />
+          <span className="h-1.5 w-3.5 rounded-full bg-[#8B5CF6]" />
           Digital Twin
         </span>
       </div>
+    </section>
+  );
+}
+
+function DigitalTwinChatCard() {
+  return (
+    <section className={`${CARD} relative flex h-full min-h-[15.5rem] flex-col justify-between overflow-hidden p-3.5`}>
+      <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-twin-dark/10 dark:bg-twin/10" />
+      <div className="relative">
+        <div className="flex h-9 w-9 items-center justify-center rounded-full border border-twin-dark/25 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
+          <MessageCircle className="h-4 w-4" />
+        </div>
+        <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.2em] text-twin-dark dark:text-twin">Digital twin</p>
+        <h2 className="mt-1.5 whitespace-nowrap font-display text-xl font-bold leading-tight text-slate-950 dark:text-white">
+          Talk through your next move.
+        </h2>
+        <p className="mt-1.5 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+          Ask your twin what these habits mean, what to change first, or how today&apos;s choices affect your future.
+        </p>
+      </div>
+
+      <Link
+        href="/twin"
+        className="relative mt-4 inline-flex w-full items-center justify-center gap-2 rounded-full bg-twin-dark px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-twin-deeper dark:bg-twin dark:text-navy-950 dark:hover:bg-twin-dark"
+      >
+        Open chatbot
+        <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
     </section>
   );
 }
