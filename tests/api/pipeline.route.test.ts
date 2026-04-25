@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST } from '@/app/api/pipeline/route';
-import { JAMES_PERSONA } from '@/data/synthea/james';
 import { resetPubMedCacheForTests } from '@/lib/backend/pubmed';
+import { HIGH_RISK_PROFILE } from '../fixtures/health-inputs';
 
 function buildRequest(body: unknown) {
   return new NextRequest('http://localhost/api/pipeline', {
@@ -68,6 +68,7 @@ function mockPubMedAndHf() {
 describe('POST /api/pipeline', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    process.env.PUBMED_CACHE_FILE = '/tmp/futureme-pubmed-test-cache.json';
     resetPubMedCacheForTests();
     process.env.HUGGINGFACE_API_KEY = 'test-token';
     process.env.PUBMED_CACHE_TTL_HOURS = '24';
@@ -83,7 +84,7 @@ describe('POST /api/pipeline', () => {
 
     const response = await POST(
       buildRequest({
-        inputs: JAMES_PERSONA,
+        inputs: HIGH_RISK_PROFILE,
         clinicalMarkers: {
           onBloodPressureTreatment: true
         },
@@ -111,7 +112,7 @@ describe('POST /api/pipeline', () => {
     const fetchMock = mockPubMedAndHf();
 
     const requestBody = {
-      inputs: JAMES_PERSONA,
+      inputs: HIGH_RISK_PROFILE,
       clinicalMarkers: {
         onBloodPressureTreatment: true
       },

@@ -1,10 +1,9 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, GitBranch } from 'lucide-react';
 import { Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { DemoQueryLoader } from '@/components/DemoSwitcher';
 import { PageTransition } from '@/components/PageTransition';
 import { computeRisks } from '@/lib/risks';
 import { useFutureMeStore } from '@/lib/store';
@@ -51,13 +50,10 @@ export default function TimelinePage() {
   if (!profile) {
     return (
       <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-8">
-        <Suspense fallback={null}>
-          <DemoQueryLoader />
-        </Suspense>
         <div className="mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center text-center">
           <GitBranch className="mb-5 h-10 w-10 text-twin" />
           <h1 className="text-3xl font-bold text-white">No timeline yet</h1>
-          <p className="mt-3 text-slate-400">Create a profile or load demo data before projecting future paths.</p>
+          <p className="mt-3 text-slate-400">Create your profile before projecting future paths.</p>
           <Link href="/onboarding" className="mt-7 inline-flex items-center gap-2 rounded-full bg-twin px-5 py-3 font-semibold text-navy-950">
             Start onboarding
             <ArrowRight className="h-4 w-4" />
@@ -69,9 +65,6 @@ export default function TimelinePage() {
 
   return (
     <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-6">
-      <Suspense fallback={null}>
-        <DemoQueryLoader />
-      </Suspense>
       <PageTransition>
         <div className="mx-auto max-w-5xl">
           <header className="mb-7">

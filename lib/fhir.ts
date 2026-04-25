@@ -33,7 +33,7 @@ export interface TwinProfile {
   biologicalAge: number;
   topRisk: string;
   keyInsight: string;
-  fhirSource?: 'questionnaire' | 'synthea-generated' | 'wearable-import';
+  fhirSource?: 'questionnaire' | 'wearable-import';
   createdAt: string;
 }
 

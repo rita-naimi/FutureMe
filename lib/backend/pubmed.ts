@@ -34,7 +34,9 @@ interface CacheRecord {
 }
 
 const CACHE_DIR = path.join(process.cwd(), 'data', 'pubmed');
-const CACHE_FILE = path.join(CACHE_DIR, 'cache.json');
+function getCacheFile() {
+  return process.env.PUBMED_CACHE_FILE ?? path.join(CACHE_DIR, 'cache.json');
+}
 let memoryCache: Record<string, CacheRecord> | null = null;
 
 function cacheTtlMs() {
@@ -44,13 +46,14 @@ function cacheTtlMs() {
 
 function ensureCacheLoaded() {
   if (memoryCache) return;
-  if (!fs.existsSync(CACHE_FILE)) {
+  const cacheFile = getCacheFile();
+  if (!fs.existsSync(cacheFile)) {
     memoryCache = {};
     return;
   }
 
   try {
-    const parsed = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8')) as Record<string, CacheRecord>;
+    const parsed = JSON.parse(fs.readFileSync(cacheFile, 'utf8')) as Record<string, CacheRecord>;
     memoryCache = parsed;
   } catch {
     memoryCache = {};
@@ -59,8 +62,9 @@ function ensureCacheLoaded() {
 
 function saveCache() {
   if (!memoryCache) return;
-  fs.mkdirSync(CACHE_DIR, { recursive: true });
-  fs.writeFileSync(CACHE_FILE, JSON.stringify(memoryCache), 'utf8');
+  const cacheFile = getCacheFile();
+  fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
+  fs.writeFileSync(cacheFile, JSON.stringify(memoryCache), 'utf8');
 }
 
 function cacheKey(query: string, maxArticles: number) {
@@ -92,8 +96,9 @@ function setCached(query: string, maxArticles: number, payload: PubMedContext) {
 
 export function resetPubMedCacheForTests() {
   memoryCache = {};
-  if (fs.existsSync(CACHE_FILE)) {
-    fs.unlinkSync(CACHE_FILE);
+  const cacheFile = getCacheFile();
+  if (fs.existsSync(cacheFile)) {
+    fs.unlinkSync(cacheFile);
   }
 }
 
@@ -132,7 +137,7 @@ function isSummaryItem(item: ESummaryItem | string[] | undefined): item is ESumm
 async function fetchJson<T>(url: string) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'FutureMe/0.1 (research prototype)'
+      'User-Agent': 'FutureMe/0.1'
     }
   });
 
@@ -146,7 +151,7 @@ async function fetchJson<T>(url: string) {
 async function fetchText(url: string) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'FutureMe/0.1 (research prototype)'
+      'User-Agent': 'FutureMe/0.1'
     }
   });
 

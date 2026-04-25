@@ -1,16 +1,10 @@
 import { createTwinProfile } from '@/lib/profile';
-import type {
-  ClinicalMarkers,
-  DerivedClinicalMarkers,
-  PipelineRequest,
-  PipelineResponse,
-  SyntheticMatch
-} from './types';
+import type { ClinicalMarkers, DerivedClinicalMarkers, PipelineRequest, PipelineResponse } from './types';
 import { buildRiskEvidence } from './risk-evidence';
 import { buildClinicalPrompt } from './prompt';
-import { findRuleBasedSyntheticPatients } from './matching';
 import { fetchPubMedContext } from './pubmed';
 import { generateClinicalSummary } from './llm';
+import type { HealthInputs } from '@/lib/fhir';
 
 const CLINICAL_MARKER_KEYS = [
   'totalCholesterolMgDl',
@@ -26,68 +20,58 @@ function markerProvidedByUser(markers: ClinicalMarkers | undefined, key: Clinica
   return markers?.[key] !== undefined;
 }
 
-function median(values: number[]) {
-  if (values.length === 0) return undefined;
-  const sorted = [...values].sort((a, b) => a - b);
-  const midpoint = Math.floor(sorted.length / 2);
-  const value =
-    sorted.length % 2 === 0
-      ? (sorted[midpoint - 1] + sorted[midpoint]) / 2
-      : sorted[midpoint];
-  return Number(value.toFixed(1));
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
 }
 
-function majority(values: boolean[]) {
-  if (values.length === 0) return undefined;
-  const trueCount = values.filter(Boolean).length;
-  const falseCount = values.length - trueCount;
-  if (trueCount === falseCount) return undefined;
-  return trueCount > falseCount;
+function round1(value: number) {
+  return Math.round(value * 10) / 10;
 }
 
-function estimateMarkersFromCohort(matches: SyntheticMatch[]) {
-  const withMarkers = matches.filter((m) => m.clinicalMarkers);
+function getBmi(inputs: Pick<HealthInputs, 'heightCm' | 'weightKg'>) {
+  return inputs.weightKg / Math.pow(inputs.heightCm / 100, 2);
+}
+
+function deriveMarkersFromQuestionnaire(inputs: HealthInputs): Required<ClinicalMarkers> {
+  const bmi = getBmi(inputs);
+  const smokerPenalty = inputs.smokingStatus === 'current' ? 12 : inputs.smokingStatus === 'former' ? 4 : 0;
+  const exerciseBenefit = Math.max(0, inputs.exerciseDaysPerWeek - 2) * 2;
+  const dietPenalty = (3 - inputs.dietQuality) * 8;
+  const stressPenalty = Math.max(0, inputs.stressLevel - 3) * 3;
+  const alcoholPenalty = Math.max(0, inputs.alcoholDrinksPerWeek - 7) * 0.8;
+  const hasKnownDiabetes = inputs.existingConditions.some((condition) => /diabetes/i.test(condition));
+  const hasKnownHypertension = inputs.existingConditions.some((condition) => /hypertension|blood pressure/i.test(condition));
+
+  const systolicBloodPressureMmHg = round1(
+    clamp(
+      108 + Math.max(0, inputs.age - 30) * 0.55 + Math.max(0, bmi - 24) * 1.35 + smokerPenalty * 0.55 + stressPenalty - exerciseBenefit,
+      95,
+      185
+    )
+  );
 
   return {
-    totalCholesterolMgDl: median(
-      withMarkers
-        .map((match) => match.clinicalMarkers?.totalCholesterolMgDl)
-        .filter((value): value is number => typeof value === 'number')
+    totalCholesterolMgDl: round1(
+      clamp(182 + Math.max(0, bmi - 24) * 2.1 + smokerPenalty + dietPenalty + alcoholPenalty - exerciseBenefit, 130, 290)
     ),
-    hdlMgDl: median(
-      withMarkers
-        .map((match) => match.clinicalMarkers?.hdlMgDl)
-        .filter((value): value is number => typeof value === 'number')
+    hdlMgDl: round1(
+      clamp((inputs.sex === 'female' ? 62 : 52) - Math.max(0, bmi - 24) * 0.9 - smokerPenalty * 0.35 + exerciseBenefit * 0.7, 30, 95)
     ),
-    systolicBloodPressureMmHg: median(
-      withMarkers
-        .map((match) => match.clinicalMarkers?.systolicBloodPressureMmHg)
-        .filter((value): value is number => typeof value === 'number')
-    ),
-    hasDiabetes: majority(
-      withMarkers
-        .map((match) => match.clinicalMarkers?.hasDiabetes)
-        .filter((value): value is boolean => typeof value === 'boolean')
-    ),
-    onBloodPressureTreatment: majority(
-      withMarkers
-        .map((match) => match.clinicalMarkers?.onBloodPressureTreatment)
-        .filter((value): value is boolean => typeof value === 'boolean')
-    )
+    systolicBloodPressureMmHg,
+    hasDiabetes: hasKnownDiabetes || bmi >= 32 || (bmi >= 29 && inputs.familyHistoryDiabetes && inputs.dietQuality <= 2),
+    onBloodPressureTreatment: hasKnownHypertension || systolicBloodPressureMmHg >= 140
   };
 }
 
 function buildEffectiveClinicalMarkers(
-  userMarkers: ClinicalMarkers | undefined,
-  selected: SyntheticMatch[],
-  relaxedFiltersUsed: string[],
-  matchingWarnings: string[]
+  inputs: HealthInputs,
+  userMarkers: ClinicalMarkers | undefined
 ): { markers: ClinicalMarkers; derived: DerivedClinicalMarkers } {
-  const cohortEstimates = estimateMarkersFromCohort(selected);
+  const questionnaireEstimates = deriveMarkersFromQuestionnaire(inputs);
   const markers: ClinicalMarkers = {};
   const providedByUser: ClinicalMarkerKey[] = [];
-  const estimatedFromSynthea: ClinicalMarkerKey[] = [];
-  const warnings = [...matchingWarnings];
+  const estimatedFromQuestionnaire: ClinicalMarkerKey[] = [];
+  const warnings: string[] = [];
 
   CLINICAL_MARKER_KEYS.forEach((key) => {
     if (markerProvidedByUser(userMarkers, key)) {
@@ -96,20 +80,13 @@ function buildEffectiveClinicalMarkers(
       return;
     }
 
-    const estimate = cohortEstimates[key];
-    if (estimate !== undefined) {
-      markers[key] = estimate as never;
-      estimatedFromSynthea.push(key);
-      return;
-    }
-
-    warnings.push(`Unable to estimate ${key} from the matched Synthea cohort.`);
+    markers[key] = questionnaireEstimates[key] as never;
+    estimatedFromQuestionnaire.push(key);
   });
 
-  const missing = CLINICAL_MARKER_KEYS.filter((key) => markers[key] === undefined);
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing clinical markers after rule-based Synthea estimation: ${missing.join(', ')}. Provide them from the questionnaire or expand the Synthea cohort.`
+  if (estimatedFromQuestionnaire.length > 0) {
+    warnings.push(
+      'Some clinical markers were estimated from questionnaire data. Provide recent lab and blood-pressure values for more personalized calculations.'
     );
   }
 
@@ -122,12 +99,10 @@ function buildEffectiveClinicalMarkers(
           ? 'user-provided'
           : providedByUser.length > 0
             ? 'mixed'
-            : 'rule-based-synthea',
+            : 'questionnaire-derived',
       providedByUser,
-      estimatedFromSynthea,
-      matchedCohortSize: selected.length,
-      relaxedFiltersUsed,
-      estimationMethod: 'rule-based matched cohort median',
+      estimatedFromQuestionnaire,
+      estimationMethod: 'questionnaire-derived heuristic',
       warnings
     }
   };
@@ -137,20 +112,11 @@ export async function runSimulationPipeline(request: PipelineRequest): Promise<P
   const yearsOfHistory = request.yearsOfHistory ?? 5;
   void request.kNearest;
 
-  const profile = createTwinProfile(request.inputs, 'synthea-generated');
-  const matchResult = findRuleBasedSyntheticPatients(request.inputs, yearsOfHistory, {
-    userDiabetes: request.clinicalMarkers?.hasDiabetes
-  });
-  const selected = matchResult.selected;
-  const { markers: effectiveMarkers, derived: derivedClinicalMarkers } = buildEffectiveClinicalMarkers(
-    request.clinicalMarkers,
-    selected,
-    matchResult.relaxedFiltersUsed,
-    matchResult.warnings
-  );
+  const profile = createTwinProfile(request.inputs);
+  const { markers: effectiveMarkers, derived: derivedClinicalMarkers } = buildEffectiveClinicalMarkers(request.inputs, request.clinicalMarkers);
 
   const riskEvidence = buildRiskEvidence(request.inputs, effectiveMarkers);
-  const prompt = buildClinicalPrompt(request.inputs, selected, riskEvidence, derivedClinicalMarkers, yearsOfHistory);
+  const prompt = buildClinicalPrompt(request.inputs, riskEvidence, derivedClinicalMarkers, yearsOfHistory);
   const pubmed = request.includePubMed
     ? await fetchPubMedContext(
         request.inputs,
@@ -172,11 +138,10 @@ export async function runSimulationPipeline(request: PipelineRequest): Promise<P
   return {
     profile,
     matching: {
-      selected,
-      totalCandidates: matchResult.totalCandidates,
-      matchingMethod: 'rule-based filters',
-      relaxedFiltersUsed: matchResult.relaxedFiltersUsed,
-      warnings: matchResult.warnings
+      selected: [],
+      totalCandidates: 0,
+      matchingMethod: 'not-used',
+      warnings: []
     },
     riskEvidence,
     prompt,

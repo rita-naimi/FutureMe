@@ -75,7 +75,7 @@ describe('formula engine', () => {
     expect(calculateCardioRisk(minimalProfile)).toBeGreaterThan(0);
   });
 
-  it('requires questionnaire or Synthea sources for all Framingham inputs instead of inventing defaults', () => {
+  it('requires questionnaire or derived sources for all Framingham inputs instead of inventing defaults', () => {
     expect(() =>
       buildCompletedMedicalProfile({
         age: 52,
@@ -109,7 +109,7 @@ describe('formula engine', () => {
       }
     );
 
-    expect(completed.estimatedFromSynthea).toEqual({
+    expect(completed.estimatedFromQuestionnaire).toEqual({
       systolicBloodPressure: true,
       totalCholesterol: true,
       hdlCholesterol: true,

@@ -36,7 +36,7 @@ export function applyEvidenceEffects(
   const mode = options?.mode ?? 'individual';
   const simulatedProfile: CompletedMedicalProfile = {
     ...profile,
-    estimatedFromSynthea: profile.estimatedFromSynthea ? { ...profile.estimatedFromSynthea } : undefined
+    estimatedFromQuestionnaire: profile.estimatedFromQuestionnaire ? { ...profile.estimatedFromQuestionnaire } : undefined
   };
   const appliedEffects: AppliedEffect[] = [];
   const warnings: string[] = [];

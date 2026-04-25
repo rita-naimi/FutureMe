@@ -21,22 +21,20 @@ export interface PipelineRequest {
   enableLocalRagCache?: boolean;
 }
 
-export interface SyntheticMatch {
-  syntheticId: string;
+export interface ReferenceMatch {
+  referenceId: string;
   name: string;
   historyYears: HistoryYears;
-  source: 'synthea-fhir' | 'synthea-seed';
+  source: 'questionnaire-derived';
   inputs: HealthInputs;
   clinicalMarkers?: ClinicalMarkers;
 }
 
 export interface DerivedClinicalMarkers extends ClinicalMarkers {
-  source: 'user-provided' | 'rule-based-synthea' | 'mixed';
+  source: 'user-provided' | 'questionnaire-derived' | 'mixed';
   providedByUser: Array<keyof ClinicalMarkers>;
-  estimatedFromSynthea: Array<keyof ClinicalMarkers>;
-  matchedCohortSize: number;
-  relaxedFiltersUsed: string[];
-  estimationMethod: 'rule-based matched cohort median';
+  estimatedFromQuestionnaire: Array<keyof ClinicalMarkers>;
+  estimationMethod: 'questionnaire-derived heuristic';
   warnings: string[];
 }
 
@@ -73,10 +71,9 @@ export interface PromptPayload {
 export interface PipelineResponse {
   profile: TwinProfile;
   matching: {
-    selected: SyntheticMatch[];
+    selected: ReferenceMatch[];
     totalCandidates: number;
-    matchingMethod?: 'rule-based filters';
-    relaxedFiltersUsed?: string[];
+    matchingMethod?: 'not-used';
     warnings?: string[];
   };
   riskEvidence: RiskEvidence;

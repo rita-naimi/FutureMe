@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { AuthPanel } from '@/components/auth/AuthPanel';
 import { StepWrapper } from '@/components/onboarding/StepWrapper';
 import { SliderQuestion } from '@/components/onboarding/SliderQuestion';
 import { CheckboxQuestion } from '@/components/onboarding/CheckboxQuestion';
-import { WearableImport } from '@/components/onboarding/WearableImport';
 import { STEPS } from '@/components/onboarding/steps';
 import { runPipelineFromClient } from '@/lib/backend/client';
+import type { PipelineResponse } from '@/lib/backend/types';
+import type { TwinProfile } from '@/lib/fhir';
 import { createTwinProfile } from '@/lib/profile';
 import { useFutureMeStore } from '@/lib/store';
 
@@ -29,8 +31,7 @@ const schema = z.object({
   familyHistoryHeart: z.boolean(),
   familyHistoryDiabetes: z.boolean(),
   familyHistoryCancer: z.boolean(),
-  existingConditions: z.array(z.string()),
-  wearableImport: z.boolean().optional()
+  existingConditions: z.array(z.string())
 });
 
 export type OnboardingValues = z.infer<typeof schema>;
@@ -50,19 +51,18 @@ const defaults: OnboardingValues = {
   familyHistoryHeart: false,
   familyHistoryDiabetes: false,
   familyHistoryCancer: false,
-  existingConditions: [],
-  wearableImport: false
+  existingConditions: []
 };
 
 export default function OnboardingPage() {
   const useBackendPipeline = process.env.NEXT_PUBLIC_USE_PIPELINE_API === '1';
   const router = useRouter();
-  const setProfile = useFutureMeStore((state) => state.setProfile);
-  const setPipelineAnalysis = useFutureMeStore((state) => state.setPipelineAnalysis);
   const profile = useFutureMeStore((state) => state.profile);
   const [stepIndex, setStepIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [pendingProfile, setPendingProfile] = useState<TwinProfile | null>(null);
+  const [pendingAnalysis, setPendingAnalysis] = useState<PipelineResponse | null>(null);
 
   const toNumberOrFallback = (value: unknown, fallback: number) => {
     const parsed = typeof value === 'number' ? value : Number(value);
@@ -179,7 +179,6 @@ export default function OnboardingPage() {
     register,
     trigger,
     getValues,
-    setValue,
     formState: { errors }
   } = useForm<OnboardingValues>({
     resolver: zodResolver(schema),
@@ -188,23 +187,26 @@ export default function OnboardingPage() {
   });
 
   const step = STEPS[stepIndex];
-  const isLastStep = stepIndex === STEPS.length - 1;
+  const isAuthStep = step.id === 'auth';
 
   const next = async () => {
-    if (submitting) return;
+    if (submitting || isAuthStep) return;
     const valid = step.optional ? true : await trigger(step.fields);
     if (!valid) return;
 
-    if (!isLastStep) {
+    if (stepIndex < STEPS.length - 2) {
       setStepIndex((current) => current + 1);
       return;
     }
 
-    const inputs = schema.omit({ wearableImport: true }).parse(getValues());
+    const inputs = schema.parse(getValues());
     setSubmitError(null);
+    setSubmitting(true);
+
+    let nextProfile: TwinProfile;
+    let nextAnalysis: PipelineResponse | null = null;
 
     if (useBackendPipeline) {
-      setSubmitting(true);
       try {
         const analysis = await runPipelineFromClient({
           inputs,
@@ -213,21 +215,21 @@ export default function OnboardingPage() {
           enableLlmSummary: true,
           kNearest: 3
         });
-        setProfile(analysis.profile);
-        setPipelineAnalysis(analysis);
+        nextProfile = analysis.profile;
+        nextAnalysis = analysis;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Backend pipeline error';
         setSubmitError(message);
-        setProfile(createTwinProfile(inputs));
-      } finally {
-        setSubmitting(false);
+        nextProfile = createTwinProfile(inputs);
       }
     } else {
-      setProfile(createTwinProfile(inputs));
-      setPipelineAnalysis(null);
+      nextProfile = createTwinProfile(inputs);
     }
 
-    router.push('/awakening');
+    setPendingProfile(nextProfile);
+    setPendingAnalysis(nextAnalysis);
+    setSubmitting(false);
+    setStepIndex(STEPS.length - 1);
   };
 
   return (
@@ -239,11 +241,14 @@ export default function OnboardingPage() {
       insight={step.insight}
       onNext={next}
       onBack={stepIndex > 0 ? () => setStepIndex((current) => current - 1) : undefined}
-      nextLabel={isLastStep ? 'Generate my twin' : 'Continue'}
+      nextLabel={stepIndex === STEPS.length - 2 ? (submitting ? 'Preparing...' : 'Continue') : 'Continue'}
+      hideNext={isAuthStep}
+      exitHref="/"
+      exitLabel="Leave onboarding"
     >
       {submitError ? <p className="mb-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</p> : null}
 
-      {step.id === 'basics' ? (
+      {step.id === 'name' ? (
         <div className="space-y-4">
           <label className="block">
             <span className="text-sm text-slate-400">Name</span>
@@ -251,32 +256,47 @@ export default function OnboardingPage() {
               {...register('name')}
               autoFocus
               className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none transition placeholder:text-slate-700 focus:border-twin/50"
-              placeholder="Alex"
+              placeholder="Your name"
             />
             {errors.name ? <span className="mt-2 block text-sm text-red-300">{errors.name.message}</span> : null}
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="text-sm text-slate-400">Age</span>
-              <input
-                {...register('age')}
-                type="number"
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none transition focus:border-twin/50"
-              />
-            </label>
-            <label className="block">
-              <span className="text-sm text-slate-400">Sex</span>
-              <select
-                {...register('sex')}
-                className="mt-2 w-full rounded-2xl border border-white/10 bg-navy-900 px-4 py-3 text-white outline-none transition focus:border-twin/50"
-              >
-                <option value="female">Female</option>
-                <option value="male">Male</option>
-                <option value="other">Other</option>
-              </select>
-            </label>
-          </div>
         </div>
+      ) : null}
+
+      {step.id === 'age' ? (
+        <label className="block">
+          <span className="text-sm text-slate-400">Age</span>
+          <input
+            {...register('age')}
+            type="number"
+            className="mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none transition focus:border-twin/50"
+          />
+        </label>
+      ) : null}
+
+      {step.id === 'sex' ? (
+        <Controller
+          control={control}
+          name="sex"
+          render={({ field }) => (
+            <div className="grid grid-cols-3 gap-2">
+              {(['female', 'male', 'other'] as const).map((sex) => (
+                <button
+                  key={sex}
+                  type="button"
+                  onClick={() => field.onChange(sex)}
+                  className={`min-h-12 rounded-2xl border px-3 text-sm font-medium capitalize transition ${
+                    field.value === sex
+                      ? 'border-twin bg-twin/10 text-white'
+                      : 'border-white/10 bg-white/[0.03] text-slate-400 hover:border-white/20'
+                  }`}
+                >
+                  {sex}
+                </button>
+              ))}
+            </div>
+          )}
+        />
       ) : null}
 
       {step.id === 'body' ? (
@@ -334,7 +354,7 @@ export default function OnboardingPage() {
               unit="/5"
               value={field.value}
               minLabel="Mostly processed"
-              maxLabel="Mediterranean"
+              maxLabel="Balanced whole foods"
               onChange={field.onChange}
             />
           )}
@@ -421,25 +441,13 @@ export default function OnboardingPage() {
         </div>
       ) : null}
 
-      {step.id === 'wearable' ? (
-        <div className="space-y-4">
-          <WearableImport />
-          <Controller
-            control={control}
-            name="wearableImport"
-            render={({ field }) => (
-              <CheckboxQuestion
-                checked={Boolean(field.value)}
-                label="Add mock wearable signals"
-                description="Adds simulated sleep, activity and recovery signals for the demo."
-                onChange={(checked) => {
-                  setValue('wearableImport', checked);
-                  field.onChange(checked);
-                }}
-              />
-            )}
-          />
-        </div>
+      {step.id === 'auth' ? (
+        <AuthPanel
+          mode="create"
+          profile={pendingProfile ?? undefined}
+          pipelineAnalysis={pendingAnalysis}
+          onSuccess={() => router.push('/awakening')}
+        />
       ) : null}
     </StepWrapper>
   );
