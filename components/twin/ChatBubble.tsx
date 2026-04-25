@@ -1,16 +1,19 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { Mic } from 'lucide-react';
 import { TwinAvatar } from './TwinAvatar';
 
 interface Props {
   role: 'user' | 'assistant';
   content: string;
+  inputMode?: 'text' | 'voice';
   streaming?: boolean;
 }
 
-export function ChatBubble({ role, content, streaming = false }: Props) {
+export function ChatBubble({ role, content, inputMode = 'text', streaming = false }: Props) {
   const fromUser = role === 'user';
+  const fromVoice = fromUser && inputMode === 'voice';
   const warning = !fromUser && content.startsWith('⚠ ');
   const visibleContent = warning ? content.slice(2) : content;
 
@@ -32,7 +35,14 @@ export function ChatBubble({ role, content, streaming = false }: Props) {
         }`}
       >
         {warning ? <span className="mr-2 font-semibold text-amber-300">⚠</span> : null}
-        {visibleContent}
+        {fromVoice ? (
+          <span className="inline-flex items-center gap-2">
+            <Mic className="h-4 w-4" />
+            Voice message
+          </span>
+        ) : (
+          visibleContent
+        )}
         {streaming ? <span className="ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse bg-twin" /> : null}
       </div>
     </motion.div>
