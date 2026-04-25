@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { Mic, MicOff } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { useRef, useState } from 'react';
+import { AIOrb } from '@/components/AIOrb';
+import type { OrbState } from '@/components/AIOrb';
 
 declare global {
   interface Window {
@@ -15,32 +15,107 @@ interface SpeechRecognitionLike {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  onerror: (() => void) | null;
   onstart: (() => void) | null;
   onend: (() => void) | null;
   onresult: ((event: SpeechRecognitionEventLike) => void) | null;
   start: () => void;
+  stop: () => void;
 }
 
 interface SpeechRecognitionEventLike {
-  results: ArrayLike<ArrayLike<{ transcript: string }>>;
+  results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal?: boolean }>;
 }
 
-export function VoiceInput({ onTranscript }: { onTranscript: (text: string) => void }) {
+interface VoiceInputProps {
+  disabled?: boolean;
+  onCancelActive?: () => void;
+  onError?: () => void;
+  onListeningChange?: (isListening: boolean) => void;
+  onSubmitTranscript?: (text: string) => void;
+  onTranscript?: (text: string) => void;
+  visualState?: OrbState;
+}
+
+export function VoiceInput({
+  disabled = false,
+  onCancelActive,
+  onError,
+  onListeningChange,
+  onSubmitTranscript,
+  onTranscript,
+  visualState = 'idle'
+}: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const finalTranscriptRef = useRef('');
+  const latestTranscriptRef = useRef('');
+  const isStopState = isListening || visualState === 'speaking';
+  const isDisabled = disabled && !isStopState;
 
   const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    if (visualState === 'speaking') {
+      onCancelActive?.();
+      return;
+    }
+
+    if (isDisabled) return;
+
     const Recognition = window.SpeechRecognition ?? window.webkitSpeechRecognition;
-    if (!Recognition) return;
+    if (!Recognition) {
+      onError?.();
+      return;
+    }
 
     const recognition = new Recognition();
     recognition.continuous = false;
-    recognition.interimResults = false;
-    recognition.lang = 'en-US';
+    recognition.interimResults = true;
+    recognition.lang = navigator.language || 'en-US';
+    finalTranscriptRef.current = '';
+    latestTranscriptRef.current = '';
+    recognitionRef.current = recognition;
 
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
+    recognition.onstart = () => {
+      setIsListening(true);
+      onListeningChange?.(true);
+    };
+    recognition.onerror = () => {
+      setIsListening(false);
+      onListeningChange?.(false);
+      onError?.();
+    };
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+      onListeningChange?.(false);
+      const transcript = (finalTranscriptRef.current || latestTranscriptRef.current).trim();
+      if (transcript) onSubmitTranscript?.(transcript);
+    };
     recognition.onresult = (event) => {
-      onTranscript(event.results[0][0].transcript);
+      let interimTranscript = '';
+      let finalTranscript = '';
+
+      for (let index = 0; index < event.results.length; index += 1) {
+        const result = event.results[index];
+        const transcript = result[0]?.transcript ?? '';
+        if (result.isFinal) {
+          finalTranscript += transcript;
+        } else {
+          interimTranscript += transcript;
+        }
+      }
+
+      const transcript = `${finalTranscript || finalTranscriptRef.current} ${interimTranscript}`.trim();
+      if (transcript) {
+        latestTranscriptRef.current = transcript;
+        onTranscript?.(transcript);
+      }
+      if (finalTranscript.trim()) finalTranscriptRef.current = finalTranscript.trim();
     };
 
     recognition.start();
@@ -50,17 +125,12 @@ export function VoiceInput({ onTranscript }: { onTranscript: (text: string) => v
     <button
       type="button"
       onClick={toggleListening}
-      className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-white/15 bg-white/[0.03] text-slate-400 transition hover:border-twin/35 hover:text-twin"
+      disabled={isDisabled}
+      className="flex h-14 w-14 flex-shrink-0 items-center justify-center self-center rounded-full transition hover:scale-[1.03] disabled:opacity-40"
       aria-label={isListening ? 'Stop voice input' : 'Start voice input'}
-      title={isListening ? 'Listening' : 'Voice input'}
+      title={isListening ? 'Stop listening' : visualState === 'speaking' ? 'Stop voice reply' : 'Speak to your twin'}
     >
-      {isListening ? (
-        <motion.span animate={{ scale: [1, 1.25, 1] }} transition={{ duration: 0.7, repeat: Infinity }}>
-          <MicOff className="h-5 w-5 text-red-300" />
-        </motion.span>
-      ) : (
-        <Mic className="h-5 w-5" />
-      )}
+      <AIOrb state={isListening ? 'listening' : visualState} size="sm" />
     </button>
   );
 }

@@ -5,7 +5,7 @@ import { persist } from 'zustand/middleware';
 import type { HealthInputs, TwinProfile } from './fhir';
 import type { PipelineResponse } from './backend/types';
 
-type ChatMessage = { role: 'user' | 'assistant'; content: string };
+type ChatMessage = { role: 'user' | 'assistant'; content: string; inputMode?: 'text' | 'voice' };
 type AccountResult = { ok: true } | { ok: false; error: string };
 
 export interface FutureMeAccount {
