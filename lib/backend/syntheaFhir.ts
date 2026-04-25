@@ -85,6 +85,10 @@ function isCondition(resource: GenericResource): boolean {
   return resource.resourceType === 'Condition';
 }
 
+function isMedicationResource(resource: GenericResource): boolean {
+  return resource.resourceType === 'MedicationRequest' || resource.resourceType === 'MedicationStatement';
+}
+
 function isDefinedResource(resource: GenericResource | undefined): resource is GenericResource {
   return Boolean(resource);
 }
@@ -104,13 +108,22 @@ function boolFromKeyword(values: string[], keyword: string) {
   return values.some((value) => value.toLowerCase().includes(keyword));
 }
 
+function resourceText(resource: GenericResource) {
+  return [
+    resource.code?.text,
+    resource.code?.coding?.map((c) => c.display).filter(Boolean).join(' '),
+    resource.valueString,
+    resource.valueCodeableConcept?.text
+  ]
+    .filter(Boolean)
+    .join(' ');
+}
+
 function inferConditions(bundle: BundleLike) {
   const resources = (bundle.entry ?? []).map((entry) => entry.resource).filter(Boolean) as GenericResource[];
   const conditionTexts = resources
     .filter((resource) => isCondition(resource))
-    .map((condition) => {
-      return condition.code?.text ?? condition.code?.coding?.map((c) => c.display).filter(Boolean).join(' ') ?? '';
-    })
+    .map(resourceText)
     .filter((text): text is string => Boolean(text));
 
   return {
@@ -163,15 +176,27 @@ export function extractHealthInputsFromBundle(bundle: BundleLike, fallbackName: 
 }
 
 export function extractClinicalMarkersFromBundle(bundle: BundleLike) {
-  const observations = (bundle.entry ?? [])
+  const resources = (bundle.entry ?? [])
     .map((entry) => entry.resource)
-    .filter(isDefinedResource)
-    .filter((resource) => isObservation(resource));
+    .filter(isDefinedResource);
+  const observations = resources.filter((resource) => isObservation(resource));
+  const conditionTexts = resources.filter((resource) => isCondition(resource)).map(resourceText);
+  const medicationTexts = resources.filter((resource) => isMedicationResource(resource)).map(resourceText);
+  const hasHypertensionMedication = medicationTexts.some((text) => {
+    const normalized = text.toLowerCase();
+    return (
+      normalized.includes('hypertension') ||
+      normalized.includes('antihypertensive') ||
+      normalized.includes('blood pressure')
+    );
+  });
 
   return {
     totalCholesterolMgDl: findObsValue(observations, LOINC.totalCholesterol),
     hdlMgDl: findObsValue(observations, LOINC.hdl),
-    systolicBloodPressureMmHg: findObsValue(observations, LOINC.systolicBp)
+    systolicBloodPressureMmHg: findObsValue(observations, LOINC.systolicBp),
+    hasDiabetes: boolFromKeyword(conditionTexts, 'diabet'),
+    onBloodPressureTreatment: medicationTexts.length > 0 ? hasHypertensionMedication : undefined
   };
 }
 

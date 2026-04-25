@@ -287,6 +287,12 @@ export default function SimulatePage() {
                   <p className="mt-1 text-xs text-slate-500">
                     PubMed query: {pipelineAnalysis.pubmed.query} ({pipelineAnalysis.pubmed.articles.length} article(s))
                   </p>
+                  {pipelineAnalysis.derivedClinicalMarkers ? (
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                      Missing biomarkers are estimated from a rule-based matched cohort of similar synthetic Synthea patients. This is an
+                      explainable prototype estimation method, not a validated clinical prediction model.
+                    </p>
+                  ) : null}
                 </article>
 
                 {pipelineAnalysis.llm ? (

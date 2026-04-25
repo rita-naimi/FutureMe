@@ -12,10 +12,32 @@ interface CohortEntry {
   clinicalMarkers?: ClinicalMarkers;
 }
 
+export interface RuleBasedMatchResult {
+  selected: SyntheticMatch[];
+  totalCandidates: number;
+  relaxedFiltersUsed: string[];
+  warnings: string[];
+}
+
+interface MatchFilters {
+  relaxSmoking: boolean;
+  ageWindowYears: number;
+  bmiWindow: number;
+  relaxDiabetes: boolean;
+}
+
 const SEED_COHORT: Array<{ syntheticId: string; inputs: HealthInputs }> = [
   { syntheticId: 'synthea-alex-seed', inputs: ALEX_PERSONA },
   { syntheticId: 'synthea-james-seed', inputs: JAMES_PERSONA },
   { syntheticId: 'synthea-maya-seed', inputs: MAYA_PERSONA }
+];
+
+const RELAXATION_STEPS: MatchFilters[] = [
+  { relaxSmoking: false, ageWindowYears: 10, bmiWindow: 5, relaxDiabetes: false },
+  { relaxSmoking: true, ageWindowYears: 10, bmiWindow: 5, relaxDiabetes: false },
+  { relaxSmoking: true, ageWindowYears: 15, bmiWindow: 5, relaxDiabetes: false },
+  { relaxSmoking: true, ageWindowYears: 15, bmiWindow: 7, relaxDiabetes: false },
+  { relaxSmoking: true, ageWindowYears: 15, bmiWindow: 7, relaxDiabetes: true }
 ];
 
 function getSyntheaCohort(): CohortEntry[] {
@@ -32,54 +54,51 @@ function getSyntheaCohort(): CohortEntry[] {
   return SEED_COHORT.map((item) => ({ ...item, source: 'synthea-seed' as const }));
 }
 
-const NORMALIZATION = {
-  age: 90,
-  bmi: 20,
-  sleep: 6,
-  exercise: 7,
-  diet: 5,
-  stress: 5,
-  alcohol: 30
-};
-
-function bmi(inputs: HealthInputs) {
+function bmi(inputs: Pick<HealthInputs, 'heightCm' | 'weightKg'>) {
   return inputs.weightKg / Math.pow(inputs.heightCm / 100, 2);
 }
 
-function boolDistance(a: boolean, b: boolean) {
-  return a === b ? 0 : 1;
+function candidateHasMatchingDiabetes(
+  candidate: CohortEntry,
+  userDiabetes: boolean | undefined,
+  relaxDiabetes: boolean
+) {
+  if (userDiabetes === undefined || relaxDiabetes) return true;
+  return candidate.clinicalMarkers?.hasDiabetes === userDiabetes;
 }
 
-function smokingDistance(a: HealthInputs['smokingStatus'], b: HealthInputs['smokingStatus']) {
-  const order: Record<HealthInputs['smokingStatus'], number> = { never: 0, former: 1, current: 2 };
-  return Math.abs(order[a] - order[b]) / 2;
+function matchesFilters(real: HealthInputs, candidate: CohortEntry, filters: MatchFilters, userDiabetes?: boolean) {
+  const candidateInputs = candidate.inputs;
+
+  if (candidateInputs.sex !== real.sex) return false;
+  if (Math.abs(candidateInputs.age - real.age) > filters.ageWindowYears) return false;
+  if (Math.abs(bmi(candidateInputs) - bmi(real)) > filters.bmiWindow) return false;
+  if (!filters.relaxSmoking && candidateInputs.smokingStatus !== real.smokingStatus) return false;
+  if (!candidateHasMatchingDiabetes(candidate, userDiabetes, filters.relaxDiabetes)) return false;
+
+  return true;
 }
 
-function sexDistance(a: HealthInputs['sex'], b: HealthInputs['sex']) {
-  return a === b ? 0 : 1;
+function getRelaxedFiltersUsed(filters: MatchFilters) {
+  const relaxed: string[] = [];
+
+  if (filters.relaxSmoking) relaxed.push('smoking');
+  if (filters.ageWindowYears > 10) relaxed.push('age ±15 years');
+  if (filters.bmiWindow > 5) relaxed.push('BMI ±7 kg/m2');
+  if (filters.relaxDiabetes) relaxed.push('diabetes');
+
+  return relaxed;
 }
 
-function normalizedAbs(a: number, b: number, scale: number) {
-  return Math.abs(a - b) / scale;
-}
-
-function computeDistance(real: HealthInputs, synthetic: HealthInputs) {
-  const terms = [
-    normalizedAbs(real.age, synthetic.age, NORMALIZATION.age),
-    sexDistance(real.sex, synthetic.sex),
-    normalizedAbs(bmi(real), bmi(synthetic), NORMALIZATION.bmi),
-    normalizedAbs(real.sleepHours, synthetic.sleepHours, NORMALIZATION.sleep),
-    normalizedAbs(real.exerciseDaysPerWeek, synthetic.exerciseDaysPerWeek, NORMALIZATION.exercise),
-    normalizedAbs(real.dietQuality, synthetic.dietQuality, NORMALIZATION.diet),
-    normalizedAbs(real.stressLevel, synthetic.stressLevel, NORMALIZATION.stress),
-    smokingDistance(real.smokingStatus, synthetic.smokingStatus),
-    normalizedAbs(real.alcoholDrinksPerWeek, synthetic.alcoholDrinksPerWeek, NORMALIZATION.alcohol),
-    boolDistance(real.familyHistoryHeart, synthetic.familyHistoryHeart),
-    boolDistance(real.familyHistoryDiabetes, synthetic.familyHistoryDiabetes),
-    boolDistance(real.familyHistoryCancer, synthetic.familyHistoryCancer)
-  ];
-
-  return terms.reduce((sum, term) => sum + term, 0) / terms.length;
+function toSyntheticMatch(entry: CohortEntry, historyYears: HistoryYears): SyntheticMatch {
+  return {
+    syntheticId: entry.syntheticId,
+    name: entry.inputs.name,
+    historyYears,
+    source: entry.source,
+    inputs: entry.inputs,
+    clinicalMarkers: entry.clinicalMarkers
+  };
 }
 
 export function getSyntheaSeedCandidates() {
@@ -88,40 +107,50 @@ export function getSyntheaSeedCandidates() {
 
 export function retroProjectInputs(real: HealthInputs, yearsBack: number): HealthInputs {
   const projectedAge = Math.max(1, real.age - yearsBack);
-  const currentBmi = real.weightKg / Math.pow(real.heightCm / 100, 2);
-  const projectedBmi = Math.max(15, currentBmi - 0.15 * yearsBack);
-  const projectedWeight = Number((projectedBmi * Math.pow(real.heightCm / 100, 2)).toFixed(1));
 
   return {
     ...real,
     age: projectedAge,
-    weightKg: projectedWeight,
     existingConditions: []
   };
 }
 
-export function findNearestSyntheticPatients(
+export function findRuleBasedSyntheticPatients(
   real: HealthInputs,
   yearsOfHistory: HistoryYears,
-  kNearest = 3
-): SyntheticMatch[] {
+  options?: {
+    userDiabetes?: boolean;
+    minimumCohortSize?: number;
+    maxCandidates?: number;
+  }
+): RuleBasedMatchResult {
   const cohort = getSyntheaCohort();
-  const boundedK = Math.max(1, Math.min(kNearest, cohort.length));
+  const minimumCohortSize = options?.minimumCohortSize ?? 10;
+  const maxCandidates = options?.maxCandidates ?? 30;
+  let matched: CohortEntry[] = [];
+  let filtersUsed = RELAXATION_STEPS[RELAXATION_STEPS.length - 1];
 
-  return cohort
-    .map(({ syntheticId, inputs, source, clinicalMarkers }) => {
-      const distance = Number(computeDistance(real, inputs).toFixed(4));
-      return {
-        syntheticId,
-        name: inputs.name,
-        distance,
-        similarity: Number((1 - distance).toFixed(4)),
-        historyYears: yearsOfHistory,
-        source,
-        inputs,
-        clinicalMarkers
-      };
-    })
-    .sort((a: SyntheticMatch, b: SyntheticMatch) => a.distance - b.distance)
-    .slice(0, boundedK);
+  for (const filters of RELAXATION_STEPS) {
+    matched = cohort.filter((candidate) => matchesFilters(real, candidate, filters, options?.userDiabetes));
+    filtersUsed = filters;
+    if (matched.length >= minimumCohortSize) break;
+  }
+
+  const selected = matched.slice(0, maxCandidates).map((entry) => toSyntheticMatch(entry, yearsOfHistory));
+  const warnings: string[] = [];
+
+  if (selected.length === 0) {
+    warnings.push('No Synthea candidates matched the rule-based cohort filters.');
+  } else if (selected.length < minimumCohortSize) {
+    warnings.push(
+      `Matched Synthea cohort has ${selected.length} candidate(s), below the preferred ${minimumCohortSize}. Treat biomarker estimates as prototype-only.`
+    );
+  }
+
+  return {
+    selected,
+    totalCandidates: cohort.length,
+    relaxedFiltersUsed: getRelaxedFiltersUsed(filtersUsed),
+    warnings
+  };
 }

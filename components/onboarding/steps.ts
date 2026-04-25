@@ -69,8 +69,8 @@ export const STEPS: OnboardingStep[] = [
   },
   {
     id: 'wearable',
-    title: 'Import from your devices.',
-    subtitle: 'Optional. Use mock wearable or Synthea data for a richer demo.',
+    title: 'Enrich your health profile',
+    subtitle: 'Use wearable data for lifestyle signals, or Synthea matching to estimate missing clinical biomarkers.',
     fields: ['wearableImport'],
     optional: true
   }

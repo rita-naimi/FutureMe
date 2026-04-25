@@ -24,8 +24,6 @@ export interface PipelineRequest {
 export interface SyntheticMatch {
   syntheticId: string;
   name: string;
-  distance: number;
-  similarity: number;
   historyYears: HistoryYears;
   source: 'synthea-fhir' | 'synthea-seed';
   inputs: HealthInputs;
@@ -33,7 +31,13 @@ export interface SyntheticMatch {
 }
 
 export interface DerivedClinicalMarkers extends ClinicalMarkers {
-  source: 'user-provided' | 'cohort-knn' | 'estimated';
+  source: 'user-provided' | 'rule-based-synthea' | 'mixed';
+  providedByUser: Array<keyof ClinicalMarkers>;
+  estimatedFromSynthea: Array<keyof ClinicalMarkers>;
+  matchedCohortSize: number;
+  relaxedFiltersUsed: string[];
+  estimationMethod: 'rule-based matched cohort median';
+  warnings: string[];
 }
 
 export interface RiskEvidence {
@@ -71,6 +75,9 @@ export interface PipelineResponse {
   matching: {
     selected: SyntheticMatch[];
     totalCandidates: number;
+    matchingMethod?: 'rule-based filters';
+    relaxedFiltersUsed?: string[];
+    warnings?: string[];
   };
   riskEvidence: RiskEvidence;
   prompt: PromptPayload;

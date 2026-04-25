@@ -84,6 +84,9 @@ describe('POST /api/pipeline', () => {
     const response = await POST(
       buildRequest({
         inputs: JAMES_PERSONA,
+        clinicalMarkers: {
+          onBloodPressureTreatment: true
+        },
         includePubMed: true,
         pubMedMaxArticles: 1,
         enableLlmSummary: true,
@@ -109,6 +112,9 @@ describe('POST /api/pipeline', () => {
 
     const requestBody = {
       inputs: JAMES_PERSONA,
+      clinicalMarkers: {
+        onBloodPressureTreatment: true
+      },
       includePubMed: true,
       pubMedMaxArticles: 1,
       enableLlmSummary: false,

@@ -19,6 +19,7 @@ function summarizeInput(inputs: HealthInputs) {
 }
 
 function summarizeMatches(matches: SyntheticMatch[], yearsBefore: number) {
+  void yearsBefore;
   return matches
     .map((match, index) => {
       const m = match.inputs;
@@ -27,26 +28,32 @@ function summarizeMatches(matches: SyntheticMatch[], yearsBefore: number) {
         ? ` | TC ${cm.totalCholesterolMgDl ?? 'NA'} mg/dL, HDL ${cm.hdlMgDl ?? 'NA'} mg/dL, PAS ${cm.systolicBloodPressureMmHg ?? 'NA'} mmHg`
         : '';
       return [
-        `${index + 1}. ${match.name} — snapshot baseline il y a ${yearsBefore} ans (distance ${match.distance}, similarite ${match.similarity})`,
-        `   Age a l'epoque: ${m.age}, sexe ${m.sex}, tabac ${m.smokingStatus}, sommeil ${m.sleepHours}h, exercice ${m.exerciseDaysPerWeek}j${clinical}`
+        `${index + 1}. ${match.name} — patient synthetique retenu par filtres explicites`,
+        `   Age: ${m.age}, sexe ${m.sex}, IMC ${(m.weightKg / Math.pow(m.heightCm / 100, 2)).toFixed(1)}, tabac ${m.smokingStatus}, sommeil ${m.sleepHours}h, exercice ${m.exerciseDaysPerWeek}j${clinical}`
       ].join('\n');
     })
     .join('\n');
 }
 
 function summarizeDerivedMarkers(derived: DerivedClinicalMarkers | undefined, yearsBefore: number) {
+  void yearsBefore;
   if (!derived) return null;
   const sourceLabel =
     derived.source === 'user-provided'
       ? 'fournis par le patient (etat actuel)'
-      : derived.source === 'cohort-knn'
-        ? `derives de la cohorte synthetique k-NN Synthea — represente l'etat biologique probable du patient il y a ${yearsBefore} ans`
-        : 'estimes par proxy IMC/lifestyle';
+      : derived.source === 'mixed'
+        ? 'fournis par le patient et completes par cohorte Synthea filtree'
+        : 'estimes par cohorte Synthea filtree';
   return [
     `### Marqueurs cliniques (${sourceLabel})`,
+    'Missing biomarkers are estimated from a rule-based matched cohort of similar synthetic Synthea patients. This is an explainable prototype estimation method, not a validated clinical prediction model.',
+    `Methode: ${derived.estimationMethod}; taille cohorte: ${derived.matchedCohortSize}; filtres relaches: ${derived.relaxedFiltersUsed.join(', ') || 'aucun'}`,
     `Cholesterol total: ${derived.totalCholesterolMgDl ?? 'NA'} mg/dL`,
     `HDL: ${derived.hdlMgDl ?? 'NA'} mg/dL`,
-    `Pression arterielle systolique: ${derived.systolicBloodPressureMmHg ?? 'NA'} mmHg`
+    `Pression arterielle systolique: ${derived.systolicBloodPressureMmHg ?? 'NA'} mmHg`,
+    `Diabete: ${derived.hasDiabetes === undefined ? 'NA' : derived.hasDiabetes ? 'oui' : 'non'}`,
+    `Traitement antihypertenseur: ${derived.onBloodPressureTreatment === undefined ? 'NA' : derived.onBloodPressureTreatment ? 'oui' : 'non'}`,
+    ...(derived.warnings.length ? [`Avertissements: ${derived.warnings.join(' ')}`] : [])
   ].join('\n');
 }
 
@@ -59,8 +66,8 @@ export function buildClinicalPrompt(
 ): PromptPayload {
   const system = [
     'Vous etes un assistant de synthese clinique pour un prototype de prevention.',
-    `Vous recevez deux types de donnees: (1) les donnees REELLES actuelles du patient, (2) une cohorte synthetique Synthea matchee par k-NN contre un profil RETRO-PROJETE du patient (age - ${yearsOfHistory} ans, IMC legerement reduit), representant son etat probable il y a ${yearsOfHistory} ans.`,
-    `Les marqueurs cliniques (cholesterol, HDL, tension) derives de cette cohorte k-NN doivent etre interpretes comme une BASELINE PASSEE (etat il y a ${yearsOfHistory} ans), PAS comme l'etat actuel.`,
+    'Vous recevez les donnees REELLES actuelles du patient et une cohorte synthetique Synthea selectionnee avec des filtres explicites et interpretables.',
+    'Les marqueurs manquants peuvent etre estimes par mediane ou vote majoritaire de cette cohorte Synthea filtree. Cette methode est un prototype explicable, pas un modele clinique valide.',
     'Objectif: comparer la trajectoire passe -> present, identifier les facteurs ayant evolue, et projeter l\'evolution future probable si les habitudes restent inchangees.',
     'Ne pas donner de recommandations de traitement individualisees. Ne pas inventer de valeurs.',
     'Sortie attendue: sections Markdown courtes: Resume, Trajectoire (passe -> present), Evolution probable a 5-10 ans, Facteurs dominants, Limites.'
@@ -72,8 +79,8 @@ export function buildClinicalPrompt(
     `### Donnees reelles ACTUELLES du patient (T0 = aujourd'hui)`,
     summarizeInput(inputs),
     '',
-    `### Cohorte synthetique Synthea — snapshot retrospectif a T0 - ${yearsOfHistory} ans`,
-    `Ces patients synthetiques sont les ${matches.length} plus proches du profil RETRO-PROJETE du patient (age - ${yearsOfHistory} ans). Leurs valeurs representent la BASELINE PASSEE probable du patient il y a ${yearsOfHistory} ans (point de comparaison historique, pas etat actuel).`,
+    `### Cohorte synthetique Synthea — appariement par filtres explicites`,
+    `Ces ${matches.length} patient(s) synthetiques sont retenus par regles interpretables: meme sexe, age proche, IMC proche, tabac identique si possible, diabete identique si fourni. Ce n'est pas une formule medicale validee.`,
     summarizeMatches(matches, yearsOfHistory),
     '',
     ...(markersBlock ? [markersBlock, ''] : []),
@@ -89,7 +96,7 @@ export function buildClinicalPrompt(
     '### Hypotheses',
     ...(riskEvidence.assumptions.length ? riskEvidence.assumptions.map((line) => `- ${line}`) : ['- Aucune hypothese supplementaire']),
     '',
-    `Tache: (1) decrire la trajectoire passe (cohorte Synthea T0-${yearsOfHistory}) -> present (donnees reelles), (2) identifier les variables ayant le plus evolue, (3) projeter l'evolution probable a +5/+10 ans si trends inchangees, (4) rappeler les limites de simulation.`
+    `Tache: (1) resumer l'etat actuel du patient, (2) expliquer quels marqueurs viennent du patient et lesquels sont estimes par cohorte Synthea filtree, (3) projeter l'evolution probable a +5/+10 ans si trends inchangees, (4) rappeler les limites de simulation.`
   ].join('\n');
 
   return { system, user };

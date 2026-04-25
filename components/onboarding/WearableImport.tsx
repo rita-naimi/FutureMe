@@ -1,21 +1,26 @@
 'use client';
 
-import { Activity, FileJson, HeartPulse, Watch } from 'lucide-react';
-import { useFutureMeStore } from '@/lib/store';
+import { Activity, HeartPulse, Stethoscope, Watch } from 'lucide-react';
 
 const WEARABLES = [
-  { name: 'Apple Health', format: 'export.xml', icon: HeartPulse },
-  { name: 'Oura Ring', format: 'oura_export.json', icon: Watch },
-  { name: 'Fitbit', format: 'fitbit_export.json', icon: Activity }
+  { name: 'Apple Health', detail: 'Mock sleep, activity and heart-rate signals', icon: HeartPulse },
+  { name: 'Oura Ring', detail: 'Mock sleep, recovery and readiness signals', icon: Watch },
+  { name: 'Fitbit', detail: 'Mock steps, activity and resting heart-rate signals', icon: Activity }
 ];
 
 export function WearableImport() {
-  const loadDemoPersona = useFutureMeStore((state) => state.loadDemoPersona);
-
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold text-white">Estimate missing biomarkers with Synthea</h2>
+        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          Match your questionnaire profile with similar synthetic patients to estimate missing clinical values such as systolic blood pressure,
+          total cholesterol, HDL, diabetes and blood-pressure treatment.
+        </p>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-3">
-        {WEARABLES.map(({ name, format, icon: Icon }) => (
+        {WEARABLES.map(({ name, detail, icon: Icon }) => (
           <button
             key={name}
             type="button"
@@ -23,22 +28,30 @@ export function WearableImport() {
           >
             <Icon className="h-5 w-5 text-twin" />
             <p className="mt-3 text-sm font-medium text-white">{name}</p>
-            <p className="mt-1 text-xs text-slate-600">{format}</p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500">{detail}</p>
           </button>
         ))}
       </div>
 
-      <button
-        type="button"
-        onClick={() => loadDemoPersona('alex')}
-        className="flex w-full items-center gap-3 rounded-2xl border border-amber-400/20 bg-amber-400/10 p-4 text-left transition hover:border-amber-300/40"
-      >
-        <FileJson className="h-5 w-5 flex-shrink-0 text-amber-300" />
+      <div className="flex w-full items-start gap-3 rounded-2xl border border-twin/25 bg-twin/10 p-4 text-left">
+        <Stethoscope className="mt-0.5 h-5 w-5 flex-shrink-0 text-twin" />
         <span>
-          <span className="block text-sm font-medium text-white">Load Alex Synthea demo data</span>
-          <span className="mt-1 block text-xs text-slate-500">Pre-generated FHIR-style patient persona for reliable demos.</span>
+          <span className="block text-sm font-medium text-white">Synthea biomarker matching</span>
+          <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+            Synthea estimates missing clinical biomarkers from a rule-based matched cohort. It does not replace your profile.
+          </span>
         </span>
-      </button>
+      </div>
+
+      <div className="grid gap-3 text-xs leading-relaxed text-slate-500 sm:grid-cols-2">
+        <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          Wearables provide lifestyle and device signals: sleep, activity, heart rate and recovery.
+        </p>
+        <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          Synthea estimates missing clinical biomarkers: SBP, total cholesterol, HDL, diabetes and blood-pressure treatment.
+        </p>
+      </div>
+      <p className="text-xs leading-relaxed text-slate-500">Neither source replaces your questionnaire profile. They only enrich it.</p>
     </div>
   );
 }

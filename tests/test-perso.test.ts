@@ -38,7 +38,7 @@ const MES_DONNEES: PipelineRequest = {
     // totalCholesterolMgDl: 200,          // cholestérol total (mg/dL)
     // hdlMgDl: 55,                        // HDL (mg/dL)
     // systolicBloodPressureMmHg: 120,     // tension systolique (mmHg)
-    // onBloodPressureTreatment: false,    // sous traitement antihypertenseur ?
+    onBloodPressureTreatment: false,       // sous traitement antihypertenseur ?
     // hasDiabetes: false,                 // diabétique ?
   },
 
@@ -119,7 +119,7 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
   console.log(`👥  PATIENTS SIMILAIRES (${matching.selected.length} / ${matching.totalCandidates} candidats)`);
   console.log('  ─────────────────────────────────────');
   matching.selected.forEach((p, i) => {
-    console.log(`  ${i + 1}. ${p.name} — similarité ${(p.similarity * 100).toFixed(0)}% (source: ${p.source})`);
+    console.log(`  ${i + 1}. ${p.name} — appariement par filtres explicites (source: ${p.source})`);
     console.log(`     Age ${p.inputs.age}a, ${p.inputs.sex}, IMC ${(p.inputs.weightKg / Math.pow(p.inputs.heightCm / 100, 2)).toFixed(1)}, tabac: ${p.inputs.smokingStatus}, sommeil: ${p.inputs.sleepHours}h`);
     if (p.clinicalMarkers) {
       const cm = p.clinicalMarkers;
@@ -128,19 +128,25 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
   });
   console.log();
 
-  // ── Marqueurs cliniques utilisés (user vs Synthea k-NN) ──
+  // ── Marqueurs cliniques utilisés (user vs Synthea rule-based) ──
   if (derivedClinicalMarkers) {
     const labels: Record<string, string> = {
       'user-provided': '✅ Fournis par toi',
-      'cohort-knn': '🧬 Dérivés de la cohorte Synthea (moyenne pondérée k-NN)',
-      'estimated': '⚠️  Estimés (proxy IMC/lifestyle)'
+      'rule-based-synthea': '🧬 Estimés depuis une cohorte Synthea filtrée (médiane / vote majoritaire)',
+      mixed: '🧬 Fournis par toi et complétés depuis une cohorte Synthea filtrée'
     };
     console.log('🔬  MARQUEURS CLINIQUES UTILISÉS POUR LE CALCUL DES RISQUES');
     console.log('  ─────────────────────────────────────');
     console.log(`  Source : ${labels[derivedClinicalMarkers.source]}`);
+    console.log(`  Méthode : ${derivedClinicalMarkers.estimationMethod}`);
+    console.log(`  Taille cohorte : ${derivedClinicalMarkers.matchedCohortSize}`);
+    console.log(`  Filtres relâchés : ${derivedClinicalMarkers.relaxedFiltersUsed.join(', ') || 'aucun'}`);
     console.log(`  Cholestérol total : ${derivedClinicalMarkers.totalCholesterolMgDl ?? 'NA'} mg/dL`);
     console.log(`  HDL               : ${derivedClinicalMarkers.hdlMgDl ?? 'NA'} mg/dL`);
     console.log(`  Tension systolique: ${derivedClinicalMarkers.systolicBloodPressureMmHg ?? 'NA'} mmHg`);
+    if (derivedClinicalMarkers.warnings.length > 0) {
+      derivedClinicalMarkers.warnings.forEach(w => console.log(`  ⚠️ ${w}`));
+    }
     console.log();
   }
 

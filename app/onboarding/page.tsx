@@ -320,8 +320,8 @@ export default function OnboardingPage() {
             render={({ field }) => (
               <CheckboxQuestion
                 checked={Boolean(field.value)}
-                label="Use mock wearable enrichment"
-                description="Adds the device-import moment to the generated FHIR profile narrative."
+                label="Add mock wearable signals"
+                description="Adds simulated sleep, activity and recovery signals for the demo."
                 onChange={(checked) => {
                   setValue('wearableImport', checked);
                   field.onChange(checked);

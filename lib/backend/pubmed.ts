@@ -9,14 +9,16 @@ interface ESearchResponse {
   };
 }
 
+interface ESummaryItem {
+  uid?: string;
+  title?: string;
+  fulljournalname?: string;
+  pubdate?: string;
+}
+
 interface ESummaryResponse {
   result?: {
-    [pmid: string]: {
-      uid?: string;
-      title?: string;
-      fulljournalname?: string;
-      pubdate?: string;
-    };
+    [pmid: string]: ESummaryItem | string[] | undefined;
     uids?: string[];
   };
 }
@@ -111,8 +113,20 @@ function buildQuery(inputs: HealthInputs, risk: RiskEvidence) {
 }
 
 function parseAbstracts(xml: string): string[] {
-  const matches = [...xml.matchAll(/<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/g)];
-  return matches.map((match) => compact(match[1].replace(/<[^>]+>/g, '')));
+  const abstracts: string[] = [];
+  const pattern = /<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/g;
+  let match = pattern.exec(xml);
+
+  while (match) {
+    abstracts.push(compact(match[1].replace(/<[^>]+>/g, '')));
+    match = pattern.exec(xml);
+  }
+
+  return abstracts;
+}
+
+function isSummaryItem(item: ESummaryItem | string[] | undefined): item is ESummaryItem {
+  return item !== undefined && !Array.isArray(item);
 }
 
 async function fetchJson<T>(url: string) {
@@ -177,9 +191,9 @@ export async function fetchPubMedContext(
       const item = summary.result?.[pmid];
       return {
         pmid,
-        title: item?.title ?? 'Untitled article',
-        journal: item?.fulljournalname,
-        year: item?.pubdate?.slice(0, 4),
+        title: isSummaryItem(item) ? item.title ?? 'Untitled article' : 'Untitled article',
+        journal: isSummaryItem(item) ? item.fulljournalname : undefined,
+        year: isSummaryItem(item) ? item.pubdate?.slice(0, 4) : undefined,
         abstractSnippet: abstracts[index]?.slice(0, 700)
       };
     });

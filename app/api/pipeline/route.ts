@@ -56,6 +56,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const result = await runSimulationPipeline(parsed.data);
-  return NextResponse.json(result);
+  try {
+    const result = await runSimulationPipeline(parsed.data);
+    return NextResponse.json(result);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Pipeline analysis failed';
+    return NextResponse.json({ error: message }, { status: 422 });
+  }
 }
