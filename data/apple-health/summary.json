@@ -1,0 +1,55 @@
+{
+  "source": "apple-health",
+  "inputFile": "/Users/tahrihassani/Downloads/apple_health_export/export.xml",
+  "generatedAt": "2026-04-25T17:18:06.962Z",
+  "windowDays": 30,
+  "inputs": {
+    "name": null,
+    "age": null,
+    "sex": null,
+    "heightCm": 173,
+    "weightKg": 83,
+    "sleepHours": 7.089401709401709,
+    "exerciseDaysPerWeek": 0.9,
+    "dietQuality": null,
+    "stressLevel": null,
+    "smokingStatus": null,
+    "alcoholDrinksPerWeek": 0,
+    "familyHistoryHeart": null,
+    "familyHistoryDiabetes": null,
+    "familyHistoryCancer": null,
+    "existingConditions": []
+  },
+  "clinicalMarkers": {
+    "totalCholesterolMgDl": null,
+    "hdlMgDl": null,
+    "systolicBloodPressureMmHg": null,
+    "onBloodPressureTreatment": null,
+    "hasDiabetes": null
+  },
+  "rawMetrics": {
+    "bmi": 25.0593,
+    "diastolicBloodPressureMmHg": null,
+    "ldlMgDl": null,
+    "triglyceridesMgDl": null,
+    "dietKcalPerDay": null,
+    "workoutDaysWithActivity": 4,
+    "sleepDaysWithData": 13
+  },
+  "missing": [
+    "name",
+    "age",
+    "sex",
+    "dietQuality",
+    "stressLevel",
+    "smokingStatus",
+    "familyHistoryHeart",
+    "familyHistoryDiabetes",
+    "familyHistoryCancer"
+  ],
+  "notes": [
+    "dietQuality and stressLevel are not directly available in Apple Health exports.",
+    "smokingStatus is only inferred if tobacco use records exist (no former status).",
+    "alcoholDrinksPerWeek uses HKQuantityTypeIdentifierAlcoholConsumption with unit=count over the last 7 days."
+  ]
+}

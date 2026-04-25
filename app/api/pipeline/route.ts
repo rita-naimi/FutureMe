@@ -48,15 +48,24 @@ const appleHealthSchema = z.object({
     .object({
       totalCholesterolMgDl: z.number().nullable().optional(),
       hdlMgDl: z.number().nullable().optional(),
+      ldlMgDl: z.number().nullable().optional(),
+      glucoseMgDl: z.number().nullable().optional(),
+      hba1cPercent: z.number().nullable().optional(),
       systolicBloodPressureMmHg: z.number().nullable().optional(),
+      diastolicBloodPressureMmHg: z.number().nullable().optional(),
+      heartRateBpm: z.number().nullable().optional(),
+      restingHeartRateBpm: z.number().nullable().optional(),
+      smoker: z.boolean().nullable().optional(),
       onBloodPressureTreatment: z.boolean().nullable().optional(),
-      hasDiabetes: z.boolean().nullable().optional()
+      hasDiabetes: z.boolean().nullable().optional(),
+      hasHypertension: z.boolean().nullable().optional()
     })
     .optional()
 });
 
 const pipelineRequestSchema = z.object({
   inputs: healthInputsSchema,
+  healthStateSource: z.enum(['synthea_fhir', 'apple_healthkit', 'manual', 'estimated']).optional(),
   yearsOfHistory: z.union([z.literal(5), z.literal(10)]).optional(),
   kNearest: z.number().int().min(1).max(10).optional(),
   includePubMed: z.boolean().optional(),
@@ -67,9 +76,17 @@ const pipelineRequestSchema = z.object({
     .object({
       totalCholesterolMgDl: z.number().positive().optional(),
       hdlMgDl: z.number().positive().optional(),
+      ldlMgDl: z.number().positive().optional(),
+      glucoseMgDl: z.number().positive().optional(),
+      hba1cPercent: z.number().positive().optional(),
       systolicBloodPressureMmHg: z.number().positive().optional(),
+      diastolicBloodPressureMmHg: z.number().positive().optional(),
+      heartRateBpm: z.number().positive().optional(),
+      restingHeartRateBpm: z.number().positive().optional(),
+      smoker: z.boolean().optional(),
       onBloodPressureTreatment: z.boolean().optional(),
-      hasDiabetes: z.boolean().optional()
+      hasDiabetes: z.boolean().optional(),
+      hasHypertension: z.boolean().optional()
     })
     .optional()
 });
@@ -95,7 +112,8 @@ function normalizePipelineRequest(raw: unknown) {
   return {
     ...rest,
     inputs,
-    clinicalMarkers
+    clinicalMarkers,
+    healthStateSource: 'apple_healthkit'
   };
 }
 

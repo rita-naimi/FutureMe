@@ -175,8 +175,13 @@ describe('POST /api/pipeline', () => {
     );
 
     expect(response.status).toBe(200);
-    const payload = (await response.json()) as { profile: { inputs: { name: string; dietQuality: number } } };
+    const payload = (await response.json()) as {
+      profile: { inputs: { name: string; dietQuality: number } };
+      trajectory?: { normalizedState: { source: string }; syntheaModelInput: Record<string, unknown> };
+    };
     expect(payload.profile.inputs.name).toBe('Apple User');
     expect(payload.profile.inputs.dietQuality).toBe(3);
+    expect(payload.trajectory?.normalizedState.source).toBe('apple_healthkit');
+    expect(payload.trajectory?.syntheaModelInput).not.toHaveProperty('sleepHours');
   });
 });

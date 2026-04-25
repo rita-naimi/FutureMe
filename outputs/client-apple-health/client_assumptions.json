@@ -1,0 +1,84 @@
+{
+  "appleSummary": {
+    "source": "apple-health",
+    "inputFile": "/Users/tahrihassani/Downloads/apple_health_export/export.xml",
+    "generatedAt": "2026-04-25T17:18:06.962Z",
+    "windowDays": 30,
+    "inputs": {
+      "name": null,
+      "age": null,
+      "sex": null,
+      "heightCm": 173,
+      "weightKg": 83,
+      "sleepHours": 7.089401709401709,
+      "exerciseDaysPerWeek": 0.9,
+      "dietQuality": null,
+      "stressLevel": null,
+      "smokingStatus": null,
+      "alcoholDrinksPerWeek": 0,
+      "familyHistoryHeart": null,
+      "familyHistoryDiabetes": null,
+      "familyHistoryCancer": null,
+      "existingConditions": []
+    },
+    "clinicalMarkers": {
+      "totalCholesterolMgDl": null,
+      "hdlMgDl": null,
+      "systolicBloodPressureMmHg": null,
+      "onBloodPressureTreatment": null,
+      "hasDiabetes": null
+    },
+    "rawMetrics": {
+      "bmi": 25.0593,
+      "diastolicBloodPressureMmHg": null,
+      "ldlMgDl": null,
+      "triglyceridesMgDl": null,
+      "dietKcalPerDay": null,
+      "workoutDaysWithActivity": 4,
+      "sleepDaysWithData": 13
+    },
+    "missing": [
+      "name",
+      "age",
+      "sex",
+      "dietQuality",
+      "stressLevel",
+      "smokingStatus",
+      "familyHistoryHeart",
+      "familyHistoryDiabetes",
+      "familyHistoryCancer"
+    ],
+    "notes": [
+      "dietQuality and stressLevel are not directly available in Apple Health exports.",
+      "smokingStatus is only inferred if tobacco use records exist (no former status).",
+      "alcoholDrinksPerWeek uses HKQuantityTypeIdentifierAlcoholConsumption with unit=count over the last 7 days."
+    ]
+  },
+  "assumedState": {
+    "age": 34,
+    "sex": "male",
+    "systolicBloodPressure": 120,
+    "diastolicBloodPressure": 78,
+    "bmi": 25.0593,
+    "totalCholesterol": 180,
+    "hdlCholesterol": 50,
+    "glucose": 92,
+    "smoker": false,
+    "diabetes": false,
+    "hypertension": false
+  },
+  "modelMetrics": {
+    "SBP_next_mae": 4.87673383571904,
+    "SBP_next_r2": 0.8057830683717205,
+    "DBP_next_mae": 3.401091946362507,
+    "DBP_next_r2": 0.8336810981387779,
+    "BMI_next_mae": 0.27442025024630917,
+    "BMI_next_r2": 0.9567799195151386,
+    "total_chol_next_mae": 16.328863866418455,
+    "total_chol_next_r2": 0.5876194986495291,
+    "HDL_next_mae": 4.336012531985427,
+    "HDL_next_r2": 0.47649835875125857,
+    "glucose_next_mae": 9.688025609179984,
+    "glucose_next_r2": 0.7406678050443909
+  }
+}

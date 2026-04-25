@@ -112,12 +112,44 @@ export function buildClinicalMarkersFromAppleHealth(summary: AppleHealthSummary)
     markers.systolicBloodPressureMmHg = src.systolicBloodPressureMmHg;
     hasAny = true;
   }
+  if (src.diastolicBloodPressureMmHg !== null && src.diastolicBloodPressureMmHg !== undefined) {
+    markers.diastolicBloodPressureMmHg = src.diastolicBloodPressureMmHg;
+    hasAny = true;
+  }
+  if (src.ldlMgDl !== null && src.ldlMgDl !== undefined) {
+    markers.ldlMgDl = src.ldlMgDl;
+    hasAny = true;
+  }
+  if (src.glucoseMgDl !== null && src.glucoseMgDl !== undefined) {
+    markers.glucoseMgDl = src.glucoseMgDl;
+    hasAny = true;
+  }
+  if (src.hba1cPercent !== null && src.hba1cPercent !== undefined) {
+    markers.hba1cPercent = src.hba1cPercent;
+    hasAny = true;
+  }
+  if (src.heartRateBpm !== null && src.heartRateBpm !== undefined) {
+    markers.heartRateBpm = src.heartRateBpm;
+    hasAny = true;
+  }
+  if (src.restingHeartRateBpm !== null && src.restingHeartRateBpm !== undefined) {
+    markers.restingHeartRateBpm = src.restingHeartRateBpm;
+    hasAny = true;
+  }
+  if (src.smoker !== null && src.smoker !== undefined) {
+    markers.smoker = src.smoker;
+    hasAny = true;
+  }
   if (src.onBloodPressureTreatment !== null && src.onBloodPressureTreatment !== undefined) {
     markers.onBloodPressureTreatment = src.onBloodPressureTreatment;
     hasAny = true;
   }
   if (src.hasDiabetes !== null && src.hasDiabetes !== undefined) {
     markers.hasDiabetes = src.hasDiabetes;
+    hasAny = true;
+  }
+  if (src.hasHypertension !== null && src.hasHypertension !== undefined) {
+    markers.hasHypertension = src.hasHypertension;
     hasAny = true;
   }
 

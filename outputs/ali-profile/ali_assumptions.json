@@ -1,0 +1,46 @@
+{
+  "providedProfile": {
+    "name": "Ali",
+    "age": 20,
+    "sex": "male",
+    "heightCm": 175,
+    "weightKg": 95,
+    "sleepHours": 8,
+    "exerciseDaysPerWeek": 3,
+    "dietQuality": 2,
+    "stressLevel": 4,
+    "smokingStatus": "current",
+    "alcoholDrinksPerWeek": 0,
+    "familyHistoryCancer": true,
+    "familyHistoryDiabetes": true,
+    "familyHistoryHeart": true
+  },
+  "initialState": {
+    "age": 20,
+    "sex": "male",
+    "systolicBloodPressure": 125.1,
+    "diastolicBloodPressure": 77.5,
+    "bmi": 31.0,
+    "totalCholesterol": 214.7,
+    "hdlCholesterol": 42.9,
+    "glucose": 92,
+    "smoker": true,
+    "diabetes": false,
+    "hypertension": false
+  },
+  "modelMetrics": {
+    "SBP_next_mae": 4.87673383571904,
+    "SBP_next_r2": 0.8057830683717205,
+    "DBP_next_mae": 3.401091946362507,
+    "DBP_next_r2": 0.8336810981387779,
+    "BMI_next_mae": 0.27442025024630917,
+    "BMI_next_r2": 0.9567799195151386,
+    "total_chol_next_mae": 16.328863866418455,
+    "total_chol_next_r2": 0.5876194986495291,
+    "HDL_next_mae": 4.336012531985427,
+    "HDL_next_r2": 0.47649835875125857,
+    "glucose_next_mae": 9.688025609179984,
+    "glucose_next_r2": 0.7406678050443909
+  },
+  "note": "Glucose used internally by trained model, omitted from output graphs."
+}

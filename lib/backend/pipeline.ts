@@ -4,6 +4,8 @@ import { buildRiskEvidence } from './risk-evidence';
 import { buildClinicalPrompt } from './prompt';
 import { fetchPubMedContext } from './pubmed';
 import { generateClinicalSummary } from './llm';
+import { buildTrajectoryOutput } from './trajectory';
+import { explainAppleHealthSyntheaOverlap, normalizeHealthState } from './normalized-state';
 import type { HealthInputs } from '@/lib/fhir';
 
 const CLINICAL_MARKER_KEYS = [
@@ -15,6 +17,7 @@ const CLINICAL_MARKER_KEYS = [
 ] as const;
 
 type ClinicalMarkerKey = (typeof CLINICAL_MARKER_KEYS)[number];
+type CoreClinicalMarkers = Required<Pick<ClinicalMarkers, ClinicalMarkerKey>>;
 
 function markerProvidedByUser(markers: ClinicalMarkers | undefined, key: ClinicalMarkerKey) {
   return markers?.[key] !== undefined;
@@ -32,7 +35,7 @@ function getBmi(inputs: Pick<HealthInputs, 'heightCm' | 'weightKg'>) {
   return inputs.weightKg / Math.pow(inputs.heightCm / 100, 2);
 }
 
-function deriveMarkersFromQuestionnaire(inputs: HealthInputs): Required<ClinicalMarkers> {
+function deriveMarkersFromQuestionnaire(inputs: HealthInputs): CoreClinicalMarkers {
   const bmi = getBmi(inputs);
   const smokerPenalty = inputs.smokingStatus === 'current' ? 12 : inputs.smokingStatus === 'former' ? 4 : 0;
   const exerciseBenefit = Math.max(0, inputs.exerciseDaysPerWeek - 2) * 2;
@@ -84,6 +87,12 @@ function buildEffectiveClinicalMarkers(
     estimatedFromQuestionnaire.push(key);
   });
 
+  Object.entries(userMarkers ?? {}).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (markers[key as keyof ClinicalMarkers] !== undefined) return;
+    markers[key as keyof ClinicalMarkers] = value as never;
+  });
+
   if (estimatedFromQuestionnaire.length > 0) {
     warnings.push(
       'Some clinical markers were estimated from questionnaire data. Provide recent lab and blood-pressure values for more personalized calculations.'
@@ -114,6 +123,13 @@ export async function runSimulationPipeline(request: PipelineRequest): Promise<P
 
   const profile = createTwinProfile(request.inputs);
   const { markers: effectiveMarkers, derived: derivedClinicalMarkers } = buildEffectiveClinicalMarkers(request.inputs, request.clinicalMarkers);
+  const normalizedState = normalizeHealthState(request.inputs, effectiveMarkers, {
+    source: request.healthStateSource ?? 'manual'
+  });
+  const trajectory = await buildTrajectoryOutput(normalizedState, request.inputs, effectiveMarkers);
+  const normalizationWarnings = explainAppleHealthSyntheaOverlap(normalizedState);
+
+  trajectory.warnings.push(...normalizationWarnings);
 
   const riskEvidence = buildRiskEvidence(request.inputs, effectiveMarkers);
   const prompt = buildClinicalPrompt(request.inputs, riskEvidence, derivedClinicalMarkers, yearsOfHistory);
@@ -148,6 +164,7 @@ export async function runSimulationPipeline(request: PipelineRequest): Promise<P
     pubmed,
     llm,
     derivedClinicalMarkers,
+    trajectory,
     generatedAt: new Date().toISOString()
   };
 }

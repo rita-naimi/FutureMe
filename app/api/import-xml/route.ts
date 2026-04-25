@@ -12,8 +12,13 @@ const RECORD_TYPES = {
   alcohol: 'HKQuantityTypeIdentifierAlcoholConsumption',
   tobacco: 'HKCategoryTypeIdentifierTobaccoUse',
   systolic: 'HKQuantityTypeIdentifierBloodPressureSystolic',
+  diastolic: 'HKQuantityTypeIdentifierBloodPressureDiastolic',
+  heartRate: 'HKQuantityTypeIdentifierHeartRate',
+  restingHeartRate: 'HKQuantityTypeIdentifierRestingHeartRate',
   totalCholesterol: 'HKQuantityTypeIdentifierCholesterol',
   hdl: 'HKQuantityTypeIdentifierHDLCholesterol',
+  ldl: 'HKQuantityTypeIdentifierLDLCholesterol',
+  glucose: 'HKQuantityTypeIdentifierBloodGlucose',
 } as const;
 
 function parseAppleDate(value: string | undefined): Date | null {
@@ -94,8 +99,13 @@ function parseXml(text: string) {
   let latestWeight: DateEntry;
   let latestBmi: DateEntry;
   let latestSystolic: DateEntry;
+  let latestDiastolic: DateEntry;
+  let latestHeartRate: DateEntry;
+  let latestRestingHeartRate: DateEntry;
   let latestTotalChol: DateEntry;
   let latestHdl: DateEntry;
+  let latestLdl: DateEntry;
+  let latestGlucose: DateEntry;
   let smokingStatus: string | undefined;
 
   for (const line of text.split('\n')) {
@@ -131,10 +141,20 @@ function parseXml(text: string) {
         else if (value?.includes('User')) smokingStatus = 'current';
       } else if (type === RECORD_TYPES.systolic) {
         latestSystolic = updateLatest(latestSystolic, toNumber(value), endDate);
+      } else if (type === RECORD_TYPES.diastolic) {
+        latestDiastolic = updateLatest(latestDiastolic, toNumber(value), endDate);
+      } else if (type === RECORD_TYPES.heartRate) {
+        latestHeartRate = updateLatest(latestHeartRate, toNumber(value), endDate);
+      } else if (type === RECORD_TYPES.restingHeartRate) {
+        latestRestingHeartRate = updateLatest(latestRestingHeartRate, toNumber(value), endDate);
       } else if (type === RECORD_TYPES.totalCholesterol) {
         latestTotalChol = updateLatest(latestTotalChol, toNumber(value), endDate);
       } else if (type === RECORD_TYPES.hdl) {
         latestHdl = updateLatest(latestHdl, toNumber(value), endDate);
+      } else if (type === RECORD_TYPES.ldl) {
+        latestLdl = updateLatest(latestLdl, toNumber(value), endDate);
+      } else if (type === RECORD_TYPES.glucose) {
+        latestGlucose = updateLatest(latestGlucose, toNumber(value), endDate);
       }
       continue;
     }
@@ -178,7 +198,13 @@ function parseXml(text: string) {
   const clinicalMarkers = {
     totalCholesterolMgDl: latestTotalChol?.value ?? null,
     hdlMgDl: latestHdl?.value ?? null,
+    ldlMgDl: latestLdl?.value ?? null,
+    glucoseMgDl: latestGlucose?.value ?? null,
     systolicBloodPressureMmHg: latestSystolic?.value ?? null,
+    diastolicBloodPressureMmHg: latestDiastolic?.value ?? null,
+    heartRateBpm: latestHeartRate?.value ?? null,
+    restingHeartRateBpm: latestRestingHeartRate?.value ?? null,
+    smoker: smokingStatus ? smokingStatus === 'current' : null,
     onBloodPressureTreatment: null as boolean | null,
     hasDiabetes: null as boolean | null
   };

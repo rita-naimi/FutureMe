@@ -10,3 +10,5 @@ yarn-error.log*
 .DS_Store
 .venv-anny
 .anny-cache
+data/synthea-src/
+data/synthea-output/

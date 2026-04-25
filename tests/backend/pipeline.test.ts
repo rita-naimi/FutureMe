@@ -20,6 +20,8 @@ describe('runSimulationPipeline', () => {
     expect(result.matching.matchingMethod).toBe('not-used');
     expect(result.riskEvidence.framingham10YearRiskPercent).toBeGreaterThan(0);
     expect(result.derivedClinicalMarkers?.estimationMethod).toBe('questionnaire-derived heuristic');
+    expect(result.trajectory?.baseline).toHaveLength(21);
+    expect(result.trajectory?.interventions.some((intervention) => intervention.scenarioId === 'structured_exercise')).toBe(true);
     expect(result.prompt.system.length).toBeGreaterThan(20);
     expect(result.pubmed.articles).toHaveLength(0);
     expect(result.llm).toBeUndefined();

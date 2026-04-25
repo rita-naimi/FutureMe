@@ -62,9 +62,16 @@ type AppleHealthImportPayload = {
   clinicalMarkers?: {
     totalCholesterolMgDl?: number | null;
     hdlMgDl?: number | null;
+    ldlMgDl?: number | null;
+    glucoseMgDl?: number | null;
     systolicBloodPressureMmHg?: number | null;
+    diastolicBloodPressureMmHg?: number | null;
+    heartRateBpm?: number | null;
+    restingHeartRateBpm?: number | null;
+    smoker?: boolean | null;
     onBloodPressureTreatment?: boolean | null;
     hasDiabetes?: boolean | null;
+    hasHypertension?: boolean | null;
   };
   missing?: string[];
 };
@@ -80,9 +87,16 @@ function normalizeClinicalMarkers(markers: AppleHealthImportPayload['clinicalMar
 
   if (typeof markers.totalCholesterolMgDl === 'number') output.totalCholesterolMgDl = markers.totalCholesterolMgDl;
   if (typeof markers.hdlMgDl === 'number') output.hdlMgDl = markers.hdlMgDl;
+  if (typeof markers.ldlMgDl === 'number') output.ldlMgDl = markers.ldlMgDl;
+  if (typeof markers.glucoseMgDl === 'number') output.glucoseMgDl = markers.glucoseMgDl;
   if (typeof markers.systolicBloodPressureMmHg === 'number') output.systolicBloodPressureMmHg = markers.systolicBloodPressureMmHg;
+  if (typeof markers.diastolicBloodPressureMmHg === 'number') output.diastolicBloodPressureMmHg = markers.diastolicBloodPressureMmHg;
+  if (typeof markers.heartRateBpm === 'number') output.heartRateBpm = markers.heartRateBpm;
+  if (typeof markers.restingHeartRateBpm === 'number') output.restingHeartRateBpm = markers.restingHeartRateBpm;
+  if (typeof markers.smoker === 'boolean') output.smoker = markers.smoker;
   if (typeof markers.onBloodPressureTreatment === 'boolean') output.onBloodPressureTreatment = markers.onBloodPressureTreatment;
   if (typeof markers.hasDiabetes === 'boolean') output.hasDiabetes = markers.hasDiabetes;
+  if (typeof markers.hasHypertension === 'boolean') output.hasHypertension = markers.hasHypertension;
 
   return Object.keys(output).length > 0 ? output : undefined;
 }

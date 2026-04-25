@@ -1,0 +1,37 @@
+{
+  "providedProfile": {
+    "smokingStatus": "current",
+    "sleepHours": 11,
+    "exerciseDaysPerWeek": 2,
+    "dietQuality": 3,
+    "stressLevel": 2,
+    "alcoholDrinksPerWeek": 0
+  },
+  "assumedState": {
+    "age": 34,
+    "sex": "male",
+    "systolicBloodPressure": 124,
+    "diastolicBloodPressure": 80,
+    "bmi": 27.732299776136855,
+    "totalCholesterol": 195,
+    "hdlCholesterol": 44,
+    "glucose": 92,
+    "smoker": true,
+    "diabetes": false,
+    "hypertension": false
+  },
+  "modelMetrics": {
+    "SBP_next_mae": 4.87673383571904,
+    "SBP_next_r2": 0.8057830683717205,
+    "DBP_next_mae": 3.401091946362507,
+    "DBP_next_r2": 0.8336810981387779,
+    "BMI_next_mae": 0.27442025024630917,
+    "BMI_next_r2": 0.9567799195151386,
+    "total_chol_next_mae": 16.328863866418455,
+    "total_chol_next_r2": 0.5876194986495291,
+    "HDL_next_mae": 4.336012531985427,
+    "HDL_next_r2": 0.47649835875125857,
+    "glucose_next_mae": 9.688025609179984,
+    "glucose_next_r2": 0.7406678050443909
+  }
+}

@@ -11,8 +11,6 @@ import {
   PolarGrid,
   Radar,
   RadarChart,
-  RadialBar,
-  RadialBarChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -21,6 +19,7 @@ import {
 import dynamic from 'next/dynamic';
 import { PageTransition } from '@/components/PageTransition';
 import type { HealthInputs, RiskScores } from '@/lib/fhir';
+import type { PipelineResponse } from '@/lib/backend/types';
 
 const TwinAvatarViewer = dynamic(() => import('@/components/twin/TwinAvatarViewer'), { ssr: false });
 import { computeBiologicalAge, computeRisks, healthScoreFromRisks } from '@/lib/risks';
@@ -35,8 +34,22 @@ type Priority = {
 
 type ProjectionPoint = {
   age: number;
+  year?: number;
   current: number;
   optimized: number;
+};
+
+type Trajectory = NonNullable<PipelineResponse['trajectory']>;
+type BiomarkerMetric = keyof Trajectory['baseline'][number]['biomarkers'];
+
+type DashboardTrendCard = {
+  label: string;
+  description: string;
+  unit: string;
+  data: ProjectionPoint[];
+  currentName: string;
+  optimizedName: string;
+  betterWhenLower: boolean;
 };
 
 const CARD =
@@ -45,6 +58,7 @@ const CARD =
 export default function DashboardPage() {
   const profile = useFutureMeStore((state) => state.profile);
   const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
+  const pipelineAnalysis = useFutureMeStore((state) => state.pipelineAnalysis);
   const [timelineOpen, setTimelineOpen] = useState(false);
 
   const dashboard = useMemo(() => {
@@ -52,31 +66,30 @@ export default function DashboardPage() {
 
     const hasSimulation = Boolean(simulatedInputs && !sameInputs(profile.inputs, simulatedInputs));
     const activeInputs = hasSimulation && simulatedInputs ? simulatedInputs : profile.inputs;
-    const currentRisks = computeRisks(profile.inputs);
     const activeRisks = computeRisks(activeInputs);
     const optimizedInputs = hasSimulation && simulatedInputs ? simulatedInputs : getOptimizedInputs(profile.inputs);
-    const optimizedRisks = computeRisks(optimizedInputs);
     const biologicalAge = computeBiologicalAge(activeInputs, activeRisks);
     const priorities = getTopPriorities(activeInputs, activeRisks);
-    const projection = buildProjectionData(profile.inputs, currentRisks, optimizedInputs, optimizedRisks);
-    const projectionGap = getProjectionYearsGap(projection);
+    const trendCards = buildDashboardTrendCards({
+      trajectory: pipelineAnalysis?.trajectory,
+      activeInputs,
+      optimizedInputs
+    });
+    const primaryTrendCard = trendCards[0];
 
     return {
       activeInputs,
-      activeRisks,
       biologicalAge,
       currentInputs: profile.inputs,
-      currentRisks,
       createdAt: profile.createdAt,
       hasSimulation,
       healthScore: healthScoreFromRisks(activeRisks),
-      optimizedInputs,
-      optimizedRisks,
       priority: priorities[0],
-      projection,
-      projectionGap
+      primaryTrendCard,
+      projectionModel: pipelineAnalysis?.trajectory?.model,
+      trendCards
     };
-  }, [profile, simulatedInputs]);
+  }, [pipelineAnalysis, profile, simulatedInputs]);
 
   if (!profile || !dashboard) {
     return (
@@ -165,31 +178,10 @@ export default function DashboardPage() {
             </div>
 
             <div className="space-y-6">
-              <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-                <RiskCard
-                  index={0}
-                  label="Cardiovascular risk"
-                  value={dashboard.activeRisks.cardiovascular}
-                  description="Heart, vessels, smoking, family history"
-                />
-                <RiskCard
-                  index={1}
-                  label="Metabolic risk"
-                  value={dashboard.activeRisks.metabolic}
-                  description="BMI, food quality, movement, diabetes history"
-                />
-                <RiskCard
-                  index={2}
-                  label="Stress load"
-                  value={dashboard.activeRisks.mentalResilience}
-                  description="Sleep, stress, recovery capacity"
-                />
-                <RiskCard
-                  index={3}
-                  label="Longevity drag"
-                  value={100 - dashboard.activeRisks.longevity}
-                  description="The drag against your long-term trajectory"
-                />
+              <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {dashboard.trendCards.map((card, index) => (
+                  <MetricTrendCard key={card.label} card={card} index={index} />
+                ))}
               </section>
 
               <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]">
@@ -198,8 +190,8 @@ export default function DashboardPage() {
                   simulatedInputs={dashboard.hasSimulation ? dashboard.activeInputs : null}
                 />
                 <MiniProjectionCard
-                  data={dashboard.projection}
-                  yearsGap={dashboard.projectionGap}
+                  card={dashboard.primaryTrendCard}
+                  model={dashboard.projectionModel}
                   onOpen={() => setTimelineOpen(true)}
                 />
               </section>
@@ -211,9 +203,8 @@ export default function DashboardPage() {
       <AnimatePresence>
         {timelineOpen ? (
           <TimelineModal
-            data={dashboard.projection}
-            yearsGap={dashboard.projectionGap}
-            startAge={dashboard.currentInputs.age}
+            card={dashboard.primaryTrendCard}
+            model={dashboard.projectionModel}
             onClose={() => setTimelineOpen(false)}
           />
         ) : null}
@@ -303,49 +294,110 @@ function BiologicalAgeHero({
   );
 }
 
-function RiskCard({
-  label,
-  value,
-  description,
-  index
-}: {
-  label: string;
-  value: number;
-  description: string;
-  index: number;
-}) {
-  const [animatedValue, setAnimatedValue] = useState(0);
-  const color = getRiskColor(value);
-
-  useEffect(() => {
-    setAnimatedValue(0);
-    const timer = window.setTimeout(() => setAnimatedValue(value), index * 100);
-    return () => window.clearTimeout(timer);
-  }, [index, value]);
+function MetricTrendCard({ card, index }: { card: DashboardTrendCard; index: number }) {
+  const first = card.data[0];
+  const last = card.data[card.data.length - 1];
+  const delta = last ? last.optimized - last.current : 0;
+  const improved = card.betterWhenLower ? delta < 0 : delta > 0;
+  const neutral = Math.abs(delta) < 0.05;
+  const xKey = card.data.some((point) => point.year !== undefined) ? 'year' : 'age';
+  const domain = getTrendDomain(card.data);
 
   return (
-    <article className={`${CARD} min-h-[13rem] p-4 text-center lg:min-h-[14rem]`}>
-      <p className="min-h-10 text-sm font-semibold leading-snug text-slate-900 dark:text-white">{label}</p>
-      <div className="relative mx-auto mt-2 h-24 w-24">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadialBarChart innerRadius="72%" outerRadius="100%" data={[{ value: animatedValue, fill: color }]} startAngle={220} endAngle={-40}>
-            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
-            <RadialBar
-              dataKey="value"
-              background={{ fill: 'rgba(100,116,139,0.16)' }}
-              cornerRadius={8}
-              animationBegin={index * 100}
-              animationDuration={900}
-              isAnimationActive
-            />
-          </RadialBarChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display text-3xl font-bold tabular-nums text-slate-950 dark:text-white">{value}</span>
+    <article className={`${CARD} flex min-h-[14.5rem] flex-col p-4 sm:p-5`}>
+      <div className="flex min-h-[4.6rem] items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-sm font-semibold leading-snug text-slate-950 dark:text-white">{card.label}</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-500">{card.description}</p>
+        </div>
+        <div
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-semibold ${
+            neutral
+              ? 'border-slate-300 bg-slate-100 text-slate-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400'
+              : improved
+                ? 'border-twin-dark/25 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin'
+                : 'border-amber-300/40 bg-amber-500/10 text-amber-700 dark:border-amber-500/25 dark:text-amber-300'
+          }`}
+        >
+          {neutral ? '0' : `${delta > 0 ? '+' : ''}${formatTrendValue(delta)}`}
         </div>
       </div>
-      <p className="mx-auto mt-2 max-w-[11rem] text-xs leading-relaxed text-slate-500 dark:text-slate-500">{description}</p>
+
+      <div className="mt-3 h-24 lg:h-28">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={card.data} margin={{ left: 0, right: 4, top: 8, bottom: 0 }}>
+            <XAxis dataKey={xKey} hide />
+            <YAxis hide domain={domain} />
+            <Tooltip content={<MetricTrendTooltip unit={card.unit} xLabel={xKey === 'year' ? 'Year' : 'Age'} />} />
+            <Line
+              type="monotone"
+              dataKey="current"
+              stroke="#94A3B8"
+              strokeWidth={2.4}
+              dot={false}
+              name={card.currentName}
+              animationBegin={index * 90}
+              animationDuration={800}
+            />
+            <Line
+              type="monotone"
+              dataKey="optimized"
+              stroke="#00A389"
+              strokeWidth={2.8}
+              dot={false}
+              name={card.optimizedName}
+              animationBegin={index * 90 + 120}
+              animationDuration={850}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-auto flex items-end justify-between gap-3 pt-3 text-xs">
+        <div>
+          <p className="font-medium text-slate-400 dark:text-slate-500">{first?.year ?? first?.age} start</p>
+          <p className="font-mono text-slate-700 dark:text-slate-300">
+            {formatTrendValue(first?.current ?? 0)}
+            <span className="ml-1 text-slate-400">{card.unit}</span>
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="font-medium text-slate-400 dark:text-slate-500">{last?.year ?? last?.age} projected</p>
+          <p className="font-mono text-twin-dark dark:text-twin">
+            {formatTrendValue(last?.optimized ?? 0)}
+            <span className="ml-1 text-slate-400">{card.unit}</span>
+          </p>
+        </div>
+      </div>
     </article>
+  );
+}
+
+function MetricTrendTooltip({
+  active,
+  payload,
+  label,
+  unit,
+  xLabel
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; color: string; name: string }>;
+  label?: number;
+  unit: string;
+  xLabel: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-2xl border border-black/10 bg-white p-3 text-sm shadow-xl dark:border-white/10 dark:bg-navy-900">
+      <p className="mb-1 font-medium text-slate-950 dark:text-white">
+        {xLabel} {label}
+      </p>
+      {payload.map((item) => (
+        <p key={item.name} style={{ color: item.color }}>
+          {item.name}: {formatTrendValue(item.value)} {unit}
+        </p>
+      ))}
+    </div>
   );
 }
 
@@ -394,25 +446,33 @@ function HabitRadarCard({
 }
 
 function MiniProjectionCard({
-  data,
-  yearsGap,
+  card,
+  model,
   onOpen
 }: {
-  data: ProjectionPoint[];
-  yearsGap: number;
+  card: DashboardTrendCard;
+  model?: string;
   onOpen: () => void;
 }) {
+  const xKey = card.data.some((point) => point.year !== undefined) ? 'year' : 'age';
+  const domain = getTrendDomain(card.data);
+  const summary = getTrendSummary(card);
+
   return (
     <section className={`${CARD} p-5`}>
-      <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Your two futures</h2>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">Up to {formatYears(yearsGap)} difference by age 80.</p>
+      <h2 className="text-sm font-semibold text-slate-950 dark:text-white">{card.label} trajectory</h2>
+      <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
+        {summary}
+        {model ? ` · ${formatModelName(model)}` : ''}
+      </p>
       <div className="relative mt-4 h-44 lg:h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
-            <XAxis dataKey="age" tick={{ fill: '#64748B', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={18} />
-            <YAxis hide domain={[0, 100]} />
-            <Line type="monotone" dataKey="current" stroke="#94A3B8" strokeWidth={2.2} dot={false} name="Current path" />
-            <Line type="monotone" dataKey="optimized" stroke="#00A389" strokeWidth={3} dot={false} name="Optimized path" />
+          <LineChart data={card.data} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
+            <XAxis dataKey={xKey} tick={{ fill: '#64748B', fontSize: 11 }} tickLine={false} axisLine={false} minTickGap={18} />
+            <YAxis hide domain={domain} />
+            <Tooltip content={<MetricTrendTooltip unit={card.unit} xLabel={xKey === 'year' ? 'Year' : 'Age'} />} />
+            <Line type="monotone" dataKey="current" stroke="#94A3B8" strokeWidth={2.2} dot={false} name={card.currentName} />
+            <Line type="monotone" dataKey="optimized" stroke="#00A389" strokeWidth={3} dot={false} name={card.optimizedName} />
           </LineChart>
         </ResponsiveContainer>
       </div>
@@ -429,16 +489,18 @@ function MiniProjectionCard({
 }
 
 function TimelineModal({
-  data,
-  yearsGap,
-  startAge,
+  card,
+  model,
   onClose
 }: {
-  data: ProjectionPoint[];
-  yearsGap: number;
-  startAge: number;
+  card: DashboardTrendCard;
+  model?: string;
   onClose: () => void;
 }) {
+  const xKey = card.data.some((point) => point.year !== undefined) ? 'year' : 'age';
+  const domain = getTrendDomain(card.data);
+  const summary = getTrendSummary(card);
+
   return (
     <motion.div
       className="fixed inset-0 z-[70] overflow-y-auto bg-ivory/96 px-5 py-6 backdrop-blur-2xl dark:bg-navy-950/96"
@@ -450,8 +512,8 @@ function TimelineModal({
       <div className="mx-auto flex min-h-full max-w-5xl flex-col">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-twin-dark dark:text-twin">Full projection</p>
-            <h2 className="mt-2 font-display text-4xl font-bold text-slate-950 dark:text-white">Two futures. One body.</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-twin-dark dark:text-twin">Full biomarker projection</p>
+            <h2 className="mt-2 font-display text-4xl font-bold text-slate-950 dark:text-white">{card.label} trajectory</h2>
           </div>
           <button
             type="button"
@@ -467,55 +529,36 @@ function TimelineModal({
         <section className={`${CARD} flex-1 p-4 sm:p-6`}>
           <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <div>
-              <p className="text-sm font-medium text-slate-950 dark:text-white">Age {startAge} to age 80</p>
+              <p className="text-sm font-medium text-slate-950 dark:text-white">
+                {xKey === 'year'
+                  ? `${card.data[0]?.year ?? 2026} to ${card.data[card.data.length - 1]?.year ?? 2046}`
+                  : `Age ${card.data[0]?.age ?? 0} to age ${card.data[card.data.length - 1]?.age ?? 0}`}
+              </p>
               <p className="mt-1 text-sm text-slate-500 dark:text-slate-500">
-                The grey line keeps today&apos;s profile. The teal line reflects the best available habit path.
+                Grey is the baseline biomarker path. Teal applies the biomarker-level intervention effects before any risk is recomputed.
+                {model ? ` Model: ${formatModelName(model)}.` : ''}
               </p>
             </div>
             <div className="rounded-2xl border border-twin-dark/20 bg-twin-dark/10 px-4 py-3 text-twin-dark dark:border-twin/20 dark:bg-twin/10 dark:text-twin">
-              <p className="font-display text-3xl font-bold">{yearsGap}</p>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em]">
-                {yearsGap === 1 ? 'year difference' : 'years difference'}
-              </p>
+              <p className="font-display text-2xl font-bold">{summary.split(' by ')[0]}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em]">biomarker delta</p>
             </div>
           </div>
 
           <div className="h-[26rem]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={data} margin={{ left: -10, right: 18, top: 18, bottom: 8 }}>
-                <XAxis dataKey="age" tick={{ fill: '#64748B', fontSize: 12 }} tickLine={false} axisLine={false} />
-                <YAxis domain={[0, 100]} tick={{ fill: '#64748B', fontSize: 12 }} tickLine={false} axisLine={false} width={28} />
-                <Tooltip content={<ProjectionTooltip />} />
-                <Line type="monotone" dataKey="current" stroke="#94A3B8" strokeWidth={3} dot={false} name="Current path" />
-                <Line type="monotone" dataKey="optimized" stroke="#00A389" strokeWidth={4} dot={{ r: 3 }} name="Optimized path" />
+              <LineChart data={card.data} margin={{ left: -10, right: 18, top: 18, bottom: 8 }}>
+                <XAxis dataKey={xKey} tick={{ fill: '#64748B', fontSize: 12 }} tickLine={false} axisLine={false} />
+                <YAxis domain={domain} tick={{ fill: '#64748B', fontSize: 12 }} tickLine={false} axisLine={false} width={34} />
+                <Tooltip content={<MetricTrendTooltip unit={card.unit} xLabel={xKey === 'year' ? 'Year' : 'Age'} />} />
+                <Line type="monotone" dataKey="current" stroke="#94A3B8" strokeWidth={3} dot={false} name={card.currentName} />
+                <Line type="monotone" dataKey="optimized" stroke="#00A389" strokeWidth={4} dot={{ r: 3 }} name={card.optimizedName} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </section>
       </div>
     </motion.div>
-  );
-}
-
-function ProjectionTooltip({
-  active,
-  payload,
-  label
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number; color: string; name: string }>;
-  label?: number;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-2xl border border-black/10 bg-white p-3 text-sm shadow-xl dark:border-white/10 dark:bg-navy-900">
-      <p className="mb-1 font-medium text-slate-950 dark:text-white">Age {label}</p>
-      {payload.map((item) => (
-        <p key={item.name} style={{ color: item.color }}>
-          {item.name}: {item.value}
-        </p>
-      ))}
-    </div>
   );
 }
 
@@ -603,45 +646,195 @@ function buildHabitData(inputs: HealthInputs) {
   ];
 }
 
-function buildProjectionData(
-  inputs: HealthInputs,
-  currentRisks: RiskScores,
-  optimizedInputs: HealthInputs,
-  optimizedRisks: RiskScores
+function buildDashboardTrendCards({
+  trajectory,
+  activeInputs,
+  optimizedInputs
+}: {
+  trajectory?: PipelineResponse['trajectory'];
+  activeInputs: HealthInputs;
+  optimizedInputs: HealthInputs;
+}): DashboardTrendCard[] {
+  if (trajectory?.baseline.length) {
+    const structuredExercise = getTrajectoryIntervention(trajectory, 'structured_exercise');
+    const stressReduction = getTrajectoryIntervention(trajectory, 'stress_reduction');
+
+    return [
+      {
+        label: 'Systolic BP',
+        description: 'Baseline vs stress reduction',
+        unit: 'mmHg',
+        data: buildBiomarkerTrend(trajectory.baseline, stressReduction?.curve, 'systolicBloodPressure'),
+        currentName: 'Baseline',
+        optimizedName: 'Stress reduction',
+        betterWhenLower: true
+      },
+      {
+        label: 'BMI',
+        description: 'BMI baseline vs exercise',
+        unit: 'BMI',
+        data: buildBiomarkerTrend(trajectory.baseline, structuredExercise?.curve, 'bmi'),
+        currentName: 'Baseline',
+        optimizedName: 'Exercise',
+        betterWhenLower: true
+      },
+      {
+        label: 'Total cholesterol',
+        description: 'Baseline vs structured exercise',
+        unit: 'mg/dL',
+        data: buildBiomarkerTrend(trajectory.baseline, structuredExercise?.curve, 'totalCholesterol'),
+        currentName: 'Baseline',
+        optimizedName: 'Exercise',
+        betterWhenLower: true
+      },
+      {
+        label: 'HDL cholesterol',
+        description: 'Baseline vs structured exercise',
+        unit: 'mg/dL',
+        data: buildBiomarkerTrend(trajectory.baseline, structuredExercise?.curve, 'hdlCholesterol'),
+        currentName: 'Baseline',
+        optimizedName: 'Exercise',
+        betterWhenLower: false
+      }
+    ];
+  }
+
+  return buildFallbackBiomarkerTrendCards(activeInputs, optimizedInputs);
+}
+
+function buildBiomarkerTrend(
+  baseline: Trajectory['baseline'],
+  intervention: Trajectory['baseline'] | undefined,
+  metric: BiomarkerMetric
 ): ProjectionPoint[] {
-  const startAge = inputs.age;
+  return baseline.map((point, index) => ({
+    age: point.age,
+    year: point.year,
+    current: round1(Number(point.biomarkers[metric])),
+    optimized: round1(Number(intervention?.[index]?.biomarkers[metric] ?? point.biomarkers[metric]))
+  }));
+}
+
+function buildFallbackBiomarkerTrendCards(activeInputs: HealthInputs, optimizedInputs: HealthInputs): DashboardTrendCard[] {
+  const current = estimateDashboardBiomarkers(activeInputs);
+  const optimized = estimateDashboardBiomarkers(optimizedInputs);
+  const exerciseBmiDelta = optimizedInputs.exerciseDaysPerWeek > activeInputs.exerciseDaysPerWeek ? -0.68 : 0;
+
+  return [
+    buildEstimatedBiomarkerCard({
+      label: 'Systolic BP',
+      description: 'Estimated baseline vs recovery habits',
+      unit: 'mmHg',
+      startAge: activeInputs.age,
+      currentStart: current.systolicBloodPressure,
+      optimizedTarget: optimized.systolicBloodPressure,
+      currentDrift: 8,
+      optimizedDrift: 3,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'BMI',
+      description: 'Estimated baseline vs exercise',
+      unit: 'BMI',
+      startAge: activeInputs.age,
+      currentStart: current.bmi,
+      optimizedTarget: Math.max(18, current.bmi + exerciseBmiDelta),
+      currentDrift: 1.2,
+      optimizedDrift: -0.4,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'Total cholesterol',
+      description: 'Estimated baseline vs exercise',
+      unit: 'mg/dL',
+      startAge: activeInputs.age,
+      currentStart: current.totalCholesterol,
+      optimizedTarget: optimized.totalCholesterol,
+      currentDrift: 10,
+      optimizedDrift: 4,
+      betterWhenLower: true
+    }),
+    buildEstimatedBiomarkerCard({
+      label: 'HDL cholesterol',
+      description: 'Estimated baseline vs exercise',
+      unit: 'mg/dL',
+      startAge: activeInputs.age,
+      currentStart: current.hdlCholesterol,
+      optimizedTarget: optimized.hdlCholesterol,
+      currentDrift: -2.5,
+      optimizedDrift: 1.2,
+      betterWhenLower: false
+    })
+  ];
+}
+
+function buildEstimatedBiomarkerCard({
+  label,
+  description,
+  unit,
+  startAge,
+  currentStart,
+  optimizedTarget,
+  currentDrift,
+  optimizedDrift,
+  betterWhenLower
+}: {
+  label: string;
+  description: string;
+  unit: string;
+  startAge: number;
+  currentStart: number;
+  optimizedTarget: number;
+  currentDrift: number;
+  optimizedDrift: number;
+  betterWhenLower: boolean;
+}): DashboardTrendCard {
   const endAge = Math.max(80, startAge + 10);
-  const improvement = Math.max(0, currentRisks.overall - optimizedRisks.overall);
-  const currentBase = healthScoreFromRisks(currentRisks);
-  const optimizedBase = healthScoreFromRisks(optimizedRisks);
-  const bioAgeGain = Math.max(0, computeBiologicalAge(inputs, currentRisks) - computeBiologicalAge(optimizedInputs, optimizedRisks));
-  const points: ProjectionPoint[] = [];
+  const data: ProjectionPoint[] = [];
 
   for (let age = startAge; age <= endAge; age += 5) {
-    const yearsAhead = age - startAge;
-    const currentScore = currentBase - yearsAhead * 0.82;
-    const optimizedScore = optimizedBase - yearsAhead * (0.52 - Math.min(0.24, improvement / 250)) + bioAgeGain * 1.5;
-
-    points.push({
+    const progress = (age - startAge) / Math.max(1, endAge - startAge);
+    const interventionProgress = progress * progress * (3 - 2 * progress);
+    data.push({
       age,
-      current: Math.max(0, Math.round(currentScore)),
-      optimized: Math.max(0, Math.min(100, Math.round(optimizedScore)))
+      current: round1(Math.max(0, currentStart + currentDrift * progress)),
+      optimized: round1(Math.max(0, currentStart + (optimizedTarget - currentStart) * interventionProgress + optimizedDrift * progress))
     });
   }
 
-  if (points[points.length - 1]?.age !== endAge) {
-    const yearsAhead = endAge - startAge;
-    points.push({
-      age: endAge,
-      current: Math.max(0, Math.round(currentBase - yearsAhead * 0.82)),
-      optimized: Math.max(
-        0,
-        Math.min(100, Math.round(optimizedBase - yearsAhead * (0.52 - Math.min(0.24, improvement / 250)) + bioAgeGain * 1.5))
-      )
-    });
-  }
+  return {
+    label,
+    description,
+    unit,
+    data,
+    currentName: 'Baseline',
+    optimizedName: 'Intervention',
+    betterWhenLower
+  };
+}
 
-  return points;
+function estimateDashboardBiomarkers(inputs: HealthInputs) {
+  const bmi = inputs.weightKg / Math.pow(inputs.heightCm / 100, 2);
+  const smokerPenalty = inputs.smokingStatus === 'current' ? 12 : inputs.smokingStatus === 'former' ? 4 : 0;
+  const exerciseBenefit = Math.max(0, inputs.exerciseDaysPerWeek - 2) * 1.2;
+  const stressPenalty = Math.max(0, inputs.stressLevel - 2) * 2.4;
+  const dietPenalty = Math.max(0, 4 - inputs.dietQuality) * 5;
+  const alcoholPenalty = Math.max(0, inputs.alcoholDrinksPerWeek - 7) * 0.8;
+
+  return {
+    systolicBloodPressure: round1(
+      clamp(110 + Math.max(0, inputs.age - 25) * 0.42 + Math.max(0, bmi - 24) * 1.3 + smokerPenalty * 0.45 + stressPenalty - exerciseBenefit, 95, 190)
+    ),
+    bmi: round1(bmi),
+    totalCholesterol: round1(
+      clamp(176 + Math.max(0, bmi - 23) * 2.2 + smokerPenalty * 0.9 + dietPenalty + alcoholPenalty - exerciseBenefit * 1.8, 130, 290)
+    ),
+    hdlCholesterol: round1(clamp((inputs.sex === 'female' ? 61 : 52) - Math.max(0, bmi - 24) * 0.9 - smokerPenalty * 0.35 + exerciseBenefit * 0.75, 30, 95))
+  };
+}
+
+function getTrajectoryIntervention(trajectory: Trajectory, scenarioId: Trajectory['interventions'][number]['scenarioId']) {
+  return trajectory.interventions.find((intervention) => intervention.scenarioId === scenarioId);
 }
 
 function getOptimizedInputs(inputs: HealthInputs): HealthInputs {
@@ -654,18 +847,6 @@ function getOptimizedInputs(inputs: HealthInputs): HealthInputs {
     alcoholDrinksPerWeek: Math.min(inputs.alcoholDrinksPerWeek, 4),
     smokingStatus: inputs.smokingStatus === 'current' ? 'former' : inputs.smokingStatus
   };
-}
-
-function getProjectionYearsGap(data: ProjectionPoint[]) {
-  const finalPoint = data[data.length - 1];
-  if (!finalPoint) return 0;
-  return Math.max(1, Math.round(Math.max(0, finalPoint.optimized - finalPoint.current) / 6));
-}
-
-function getRiskColor(value: number) {
-  if (value < 30) return '#22C55E';
-  if (value <= 60) return '#F59E0B';
-  return '#EF4444';
 }
 
 function getScoreColor(value: number) {
@@ -683,8 +864,47 @@ function formatHours(value: number) {
   return Number.isInteger(value) ? `${value}h` : `${value.toFixed(1)}h`;
 }
 
-function formatYears(value: number) {
-  return `${value} ${value === 1 ? 'year' : 'years'}`;
+function formatModelName(model: string) {
+  if (model === 'synthea_gradient_boosting_v1') return 'Synthea GBM';
+  if (model === 'synthea_proxy_transition_v0') return 'Synthea proxy';
+  return model;
+}
+
+function round1(value: number) {
+  return Math.round(value * 10) / 10;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function formatTrendValue(value: number) {
+  if (!Number.isFinite(value)) return 'n/a';
+  if (Math.abs(value) >= 100) return Math.round(value).toString();
+  if (Math.abs(value) >= 10) return value.toFixed(1);
+  return value.toFixed(2).replace(/\.00$/, '');
+}
+
+function getTrendSummary(card: DashboardTrendCard) {
+  const finalPoint = card.data[card.data.length - 1];
+  if (!finalPoint) return `No ${card.label.toLowerCase()} trajectory available`;
+
+  const delta = finalPoint.optimized - finalPoint.current;
+  const xLabel = finalPoint.year ?? finalPoint.age;
+  if (Math.abs(delta) < 0.05) return `No material ${card.label.toLowerCase()} change by ${xLabel}`;
+
+  const signed = `${delta > 0 ? '+' : '-'}${formatTrendValue(Math.abs(delta))}`;
+  return `${signed} ${card.unit} by ${xLabel}`;
+}
+
+function getTrendDomain(data: ProjectionPoint[]): [number, number] {
+  const values = data.flatMap((point) => [point.current, point.optimized]).filter((value) => Number.isFinite(value));
+  if (values.length === 0) return [0, 1];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const spread = Math.max(0.5, max - min);
+  const padding = spread * 0.18;
+  return [round1(Math.max(0, min - padding)), round1(max + padding)];
 }
 
 function sameInputs(a: HealthInputs, b: HealthInputs) {
