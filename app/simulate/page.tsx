@@ -1,5 +1,10 @@
 'use client';
-
+import dynamic from 'next/dynamic';
+import { healthScoreFromRisks } from '@/lib/risks';
+const TwinAvatarViewer = dynamic(
+  () => import('@/components/twin/TwinAvatarViewer'),
+  { ssr: false }
+);
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { ArrowDown, ArrowRight, RotateCcw, SlidersHorizontal } from 'lucide-react';
@@ -113,6 +118,12 @@ export default function SimulatePage() {
   return (
     <main className="min-h-screen bg-navy-950 px-5 pb-28 pt-6">
       <PageTransition>
+        <div className="mx-auto mb-6 max-w-5xl">
+          <TwinAvatarViewer
+            healthScore={healthScoreFromRisks(simulatedRisks)}
+            gender={profile.inputs.sex === 'female' ? 'female' : 'male'}
+          />
+  </div>
         <div className="mx-auto max-w-5xl">
           <header className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
