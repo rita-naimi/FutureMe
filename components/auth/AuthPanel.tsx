@@ -11,10 +11,11 @@ interface Props {
   mode: 'create' | 'login';
   profile?: TwinProfile;
   pipelineAnalysis?: PipelineResponse | null;
+  profilePhotoDataUrl?: string | null;
   onSuccess: () => void;
 }
 
-export function AuthPanel({ mode, profile, pipelineAnalysis = null, onSuccess }: Props) {
+export function AuthPanel({ mode, profile, pipelineAnalysis = null, profilePhotoDataUrl = null, onSuccess }: Props) {
   const registerAccount = useFutureMeStore((state) => state.registerAccount);
   const loginAccount = useFutureMeStore((state) => state.loginAccount);
   const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export function AuthPanel({ mode, profile, pipelineAnalysis = null, onSuccess }:
 
     const result = isCreate
       ? profile
-        ? registerAccount(email, password, profile, pipelineAnalysis)
+        ? registerAccount(email, password, profile, pipelineAnalysis, profilePhotoDataUrl)
         : { ok: false as const, error: 'Complete the questionnaire before creating an account.' }
       : loginAccount(email, password);
 

@@ -13,6 +13,7 @@ export interface FutureMeAccount {
   password: string;
   name: string;
   profile: TwinProfile;
+  profilePhotoDataUrl: string | null;
   pipelineAnalysis: PipelineResponse | null;
   updatedAt: string;
 }
@@ -23,12 +24,20 @@ interface FutureMeStore {
   chatHistory: ChatMessage[];
   pipelineAnalysis: PipelineResponse | null;
   currentUserEmail: string | null;
+  profilePhotoDataUrl: string | null;
   accounts: Record<string, FutureMeAccount>;
   setProfile: (profile: TwinProfile) => void;
   setSimulatedInputs: (inputs: HealthInputs) => void;
   setPipelineAnalysis: (analysis: PipelineResponse | null) => void;
-  registerAccount: (email: string, password: string, profile: TwinProfile, analysis?: PipelineResponse | null) => AccountResult;
+  registerAccount: (
+    email: string,
+    password: string,
+    profile: TwinProfile,
+    analysis?: PipelineResponse | null,
+    profilePhotoDataUrl?: string | null
+  ) => AccountResult;
   loginAccount: (email: string, password: string) => AccountResult;
+  setProfilePhoto: (profilePhotoDataUrl: string | null) => void;
   logout: () => void;
   addMessage: (message: ChatMessage) => void;
   replaceLastAssistantMessage: (content: string) => void;
@@ -48,6 +57,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
       chatHistory: [],
       pipelineAnalysis: null,
       currentUserEmail: null,
+      profilePhotoDataUrl: null,
       accounts: {},
 
       setProfile: (profile) =>
@@ -71,6 +81,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
                 ...account,
                 name: profile.inputs.name,
                 profile,
+                profilePhotoDataUrl: state.profilePhotoDataUrl,
                 pipelineAnalysis: null,
                 updatedAt: new Date().toISOString()
               }
@@ -99,7 +110,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
           };
         }),
 
-      registerAccount: (email, password, profile, analysis = null) => {
+      registerAccount: (email, password, profile, analysis = null, profilePhotoDataUrl = null) => {
         const normalizedEmail = normalizeEmail(email);
         if (!normalizedEmail || !normalizedEmail.includes('@')) {
           return { ok: false, error: 'Enter a valid email address.' };
@@ -116,6 +127,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
           password,
           name: profile.inputs.name,
           profile,
+          profilePhotoDataUrl,
           pipelineAnalysis: analysis,
           updatedAt: new Date().toISOString()
         };
@@ -127,6 +139,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
             [normalizedEmail]: account
           },
           profile,
+          profilePhotoDataUrl,
           simulatedInputs: profile.inputs,
           chatHistory: [],
           pipelineAnalysis: analysis
@@ -145,6 +158,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
         set({
           currentUserEmail: normalizedEmail,
           profile: account.profile,
+          profilePhotoDataUrl: account.profilePhotoDataUrl,
           simulatedInputs: account.profile.inputs,
           chatHistory: [],
           pipelineAnalysis: account.pipelineAnalysis
@@ -153,10 +167,30 @@ export const useFutureMeStore = create<FutureMeStore>()(
         return { ok: true };
       },
 
+      setProfilePhoto: (profilePhotoDataUrl) =>
+        set((state) => {
+          if (!state.currentUserEmail) return { profilePhotoDataUrl };
+          const account = state.accounts[state.currentUserEmail];
+          if (!account) return { profilePhotoDataUrl };
+
+          return {
+            profilePhotoDataUrl,
+            accounts: {
+              ...state.accounts,
+              [state.currentUserEmail]: {
+                ...account,
+                profilePhotoDataUrl,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          };
+        }),
+
       logout: () =>
         set({
           currentUserEmail: null,
           profile: null,
+          profilePhotoDataUrl: null,
           simulatedInputs: null,
           chatHistory: [],
           pipelineAnalysis: null
@@ -212,7 +246,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
           simulatedInputs: null,
           chatHistory: [],
           pipelineAnalysis: null,
-          currentUserEmail: null
+          currentUserEmail: null,
+          profilePhotoDataUrl: null
         })
     }),
     {
@@ -223,6 +258,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
         chatHistory: state.chatHistory,
         pipelineAnalysis: state.pipelineAnalysis,
         currentUserEmail: state.currentUserEmail,
+        profilePhotoDataUrl: state.profilePhotoDataUrl,
         accounts: state.accounts
       })
     }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { HealthInputs } from '@/lib/fhir';
+import { buildClinicalMarkersFromAppleHealth, buildInputsFromAppleHealth } from '@/lib/backend/appleHealth';
 import { runSimulationPipeline } from '@/lib/backend/pipeline';
 
 export const runtime = 'nodejs';
@@ -23,6 +24,37 @@ const healthInputsSchema: z.ZodType<HealthInputs> = z.object({
   existingConditions: z.array(z.string())
 });
 
+const appleHealthSchema = z.object({
+  inputs: z
+    .object({
+      name: z.string().nullable().optional(),
+      age: z.number().nullable().optional(),
+      sex: z.enum(['male', 'female', 'other']).nullable().optional(),
+      heightCm: z.number().nullable().optional(),
+      weightKg: z.number().nullable().optional(),
+      sleepHours: z.number().nullable().optional(),
+      exerciseDaysPerWeek: z.number().nullable().optional(),
+      dietQuality: z.number().nullable().optional(),
+      stressLevel: z.number().nullable().optional(),
+      smokingStatus: z.enum(['never', 'former', 'current']).nullable().optional(),
+      alcoholDrinksPerWeek: z.number().nullable().optional(),
+      familyHistoryHeart: z.boolean().nullable().optional(),
+      familyHistoryDiabetes: z.boolean().nullable().optional(),
+      familyHistoryCancer: z.boolean().nullable().optional(),
+      existingConditions: z.array(z.string()).optional()
+    })
+    .optional(),
+  clinicalMarkers: z
+    .object({
+      totalCholesterolMgDl: z.number().nullable().optional(),
+      hdlMgDl: z.number().nullable().optional(),
+      systolicBloodPressureMmHg: z.number().nullable().optional(),
+      onBloodPressureTreatment: z.boolean().nullable().optional(),
+      hasDiabetes: z.boolean().nullable().optional()
+    })
+    .optional()
+});
+
 const pipelineRequestSchema = z.object({
   inputs: healthInputsSchema,
   yearsOfHistory: z.union([z.literal(5), z.literal(10)]).optional(),
@@ -42,9 +74,44 @@ const pipelineRequestSchema = z.object({
     .optional()
 });
 
+function normalizePipelineRequest(raw: unknown) {
+  if (!raw || typeof raw !== 'object') return raw;
+  const data = raw as Record<string, unknown>;
+
+  if (!data.appleHealth) return raw;
+
+  const parsedApple = appleHealthSchema.safeParse(data.appleHealth);
+  if (!parsedApple.success) {
+    return { __invalidAppleHealth: parsedApple.error.flatten() };
+  }
+
+  const inputs = data.inputs ?? buildInputsFromAppleHealth(parsedApple.data);
+  const clinicalMarkers =
+    (data.clinicalMarkers as Record<string, unknown>) ?? buildClinicalMarkersFromAppleHealth(parsedApple.data);
+
+  const { appleHealth: _appleHealth, ...rest } = data;
+  return {
+    ...rest,
+    inputs,
+    clinicalMarkers
+  };
+}
+
 export async function POST(req: NextRequest) {
   const raw = await req.json();
-  const parsed = pipelineRequestSchema.safeParse(raw);
+  const normalized = normalizePipelineRequest(raw);
+
+  if ((normalized as { __invalidAppleHealth?: unknown }).__invalidAppleHealth) {
+    return NextResponse.json(
+      {
+        error: 'Invalid Apple Health payload',
+        details: (normalized as { __invalidAppleHealth: unknown }).__invalidAppleHealth
+      },
+      { status: 400 }
+    );
+  }
+
+  const parsed = pipelineRequestSchema.safeParse(normalized);
 
   if (!parsed.success) {
     return NextResponse.json(

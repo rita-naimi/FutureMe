@@ -1,7 +1,7 @@
 import type { HealthInputs } from '@/lib/fhir';
 import type { LlmOutput, PromptPayload, PubMedArticle, RiskEvidence } from './types';
 
-const MODEL_ID = process.env.HF_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
+const MODEL_ID = process.env.HF_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
 const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
 
 function buildPubMedSection(articles: PubMedArticle[]) {
