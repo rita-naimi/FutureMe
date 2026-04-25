@@ -281,7 +281,7 @@ function BiologicalAgeHero({
         {rounded}
       </motion.span>
       <div
-        className={`mt-5 inline-flex max-w-full items-center rounded-full border px-4 py-2 text-sm font-semibold ${
+        className={`mx-auto mt-5 inline-flex max-w-full items-center rounded-full border px-4 py-2 text-sm font-semibold ${
           sameAge
             ? 'border-slate-300 bg-slate-100 text-slate-600 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-400'
             : isOlder
@@ -372,10 +372,10 @@ function HabitRadarCard({
           <RadarChart data={chartData} margin={{ top: 8, right: 18, bottom: 8, left: 18 }}>
             <PolarGrid stroke="rgba(100,116,139,0.22)" />
             <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748B', fontSize: 10 }} />
-            <Radar dataKey="current" stroke="#00A389" fill="#00C9A7" fillOpacity={0.15} strokeWidth={2} />
             {simulatedData ? (
               <Radar dataKey="simulated" stroke="#8B5CF6" fill="#8B5CF6" fillOpacity={0.1} strokeWidth={2} />
             ) : null}
+            <Radar dataKey="current" stroke="#00A389" fill="#00C9A7" fillOpacity={0.15} strokeWidth={2} />
           </RadarChart>
         </ResponsiveContainer>
       </div>
