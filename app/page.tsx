@@ -1,134 +1,148 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { ArrowRight, HeartPulse, LineChart, LogIn, MessageCircle } from 'lucide-react';
+import { useMemo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { TwinAvatar } from '@/components/twin/TwinAvatar';
+
+const MESSAGE = 'I know you think five hours of sleep is enough. I used to think that too.';
 
 export default function LandingPage() {
   const router = useRouter();
+  const prefersReduced = useReducedMotion();
+
+  const words = useMemo(() => MESSAGE.split(' '), []);
+
+  const fadeIn = (delay: number, y = 0) => ({
+    initial: prefersReduced ? { opacity: 1, y: 0 } : { opacity: 0, y },
+    animate: { opacity: 1, y: 0 },
+    transition: prefersReduced ? { duration: 0 } : { delay, duration: 0.8, ease: 'easeOut' }
+  });
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-navy-950 px-6">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-twin/50 to-transparent" />
-      <div className="mx-auto grid min-h-screen max-w-6xl items-center gap-10 py-16 lg:grid-cols-[1fr_0.86fr]">
-        <section className="relative z-10">
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: 'easeOut' }}
-            className="mb-10"
-          >
-            <TwinAvatar size="lg" active />
-          </motion.div>
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-b from-ivory to-ivory-dark px-6 text-slate-900 dark:bg-none dark:bg-navy-950 dark:text-slate-100">
+      <div className="pointer-events-none absolute left-1/2 top-[40%] z-0 hidden h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle,rgba(0,201,167,0.07)_0%,transparent_70%)] dark:block" />
 
-          <motion.h1
-            className="text-balance text-5xl font-bold leading-[0.95] text-white sm:text-7xl"
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.15, duration: 0.75, ease: 'easeOut' }}
-          >
-            Meet your <span className="text-twin">future self.</span>
-          </motion.h1>
-          <motion.p
-            className="mt-6 max-w-xl text-lg leading-relaxed text-slate-400 sm:text-xl"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.28, duration: 0.65, ease: 'easeOut' }}
-          >
-            A two-minute questionnaire becomes a ten-year health projection, a digital twin, and a conversation with the person your habits are building.
-          </motion.p>
-
-          <motion.div
-            className="mt-9 flex flex-col gap-3 sm:flex-row"
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.42, duration: 0.65, ease: 'easeOut' }}
-          >
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding')}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-twin px-6 py-3 font-semibold text-navy-950 transition hover:bg-twin-dark"
-            >
-              Begin your awakening
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push('/login')}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 px-6 py-3 font-semibold text-slate-200 transition hover:border-twin/40 hover:text-twin"
-            >
-              <LogIn className="h-4 w-4" />
-              Log in
-            </button>
-          </motion.div>
-
-          <motion.p
-            className="mt-6 text-sm text-slate-600"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.8 }}
-          >
-            HL7 FHIR R4 profile · LOINC observations · Personalized risk projection
-          </motion.p>
-        </section>
-
-        <motion.section
-          initial={{ opacity: 0, x: 28 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.25, duration: 0.8, ease: 'easeOut' }}
-          className="relative z-10"
-          aria-label="FutureMe preview"
-        >
-          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-3 shadow-2xl shadow-black/30">
-            <div className="rounded-[1.4rem] border border-white/10 bg-navy-900 p-5">
-              <div className="mb-5 flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Your profile</p>
-                  <p className="mt-1 text-lg font-semibold text-white">Digital twin ready</p>
-                </div>
-                <TwinAvatar />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {[
-                  { label: 'Bio age', value: 'calc', icon: HeartPulse, color: 'text-red-300' },
-                  { label: 'Risk map', value: 'live', icon: LineChart, color: 'text-amber-300' },
-                  { label: 'Twin chat', value: 'ready', icon: MessageCircle, color: 'text-twin' }
-                ].map(({ label, value, icon: Icon, color }) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-navy-950 p-4">
-                    <Icon className={`h-4 w-4 ${color}`} />
-                    <p className="mt-4 text-3xl font-bold text-white">{value}</p>
-                    <p className="mt-1 text-xs text-slate-500">{label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-5 rounded-2xl border border-twin/20 bg-twin/5 p-4">
-                <p className="text-sm leading-relaxed text-slate-200">
-                  Your projection updates as your real habits change.
-                </p>
-              </div>
-              <div className="mt-5 h-28 rounded-2xl border border-white/10 bg-navy-950 p-4">
-                <div className="flex h-full items-end gap-2">
-                  {[78, 68, 55, 43, 35, 28, 22].map((height, index) => (
-                    <span
-                      key={index}
-                      className="flex-1 rounded-t bg-slate-700"
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
-                  {[45, 52, 58, 64, 68, 72, 76].map((height, index) => (
-                    <span
-                      key={index}
-                      className="flex-1 rounded-t bg-twin"
-                      style={{ height: `${height}%` }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
+      <div className="absolute left-6 top-6 z-20 font-mono text-sm text-slate-400 dark:text-slate-600">
+        FutureMe
       </div>
+
+      <section className="relative z-10 mx-auto flex min-h-screen max-w-3xl flex-col items-center">
+        <div className="mt-16 flex justify-center">
+          <motion.div
+            className="relative flex h-24 w-24 items-center justify-center"
+            initial={prefersReduced ? { opacity: 1 } : { opacity: 0 }}
+            animate={
+              prefersReduced
+                ? { opacity: 1 }
+                : { scale: [1, 1.08, 1], opacity: [0.8, 1, 0.8] }
+            }
+            transition={prefersReduced ? { duration: 0 } : { duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(0,163,137,0.12)_0%,transparent_68%)] dark:bg-[radial-gradient(circle,rgba(0,201,167,0.15)_0%,transparent_68%)]" />
+            <span className="relative font-display text-7xl font-bold leading-none text-twin-dark dark:text-twin">∞</span>
+          </motion.div>
+        </div>
+
+        <div className="flex w-full flex-1 flex-col items-center justify-center pb-10 pt-10">
+          <motion.div
+            className="w-full max-w-xl"
+            {...fadeIn(0.6, 20)}
+          >
+            <div className="max-w-[31rem] rounded-2xl rounded-tl-sm border border-black/10 bg-white px-5 py-4 text-slate-900 shadow-[0_2px_16px_rgba(0,0,0,0.06)] dark:border-white/[0.08] dark:bg-[rgba(12,22,40,0.9)] dark:text-slate-100 dark:shadow-none">
+              <motion.p
+                className="font-sans text-lg italic leading-relaxed"
+                variants={{
+                  visible: {
+                    transition: {
+                      delayChildren: prefersReduced ? 0 : 0.8,
+                      staggerChildren: prefersReduced ? 0 : 0.07
+                    }
+                  }
+                }}
+                initial="hidden"
+                animate="visible"
+              >
+                {words.map((word, index) => (
+                  <motion.span
+                    key={`${word}-${index}`}
+                    className="mr-[0.28em] inline-block"
+                    variants={{
+                      hidden: prefersReduced ? { opacity: 1 } : { opacity: 0, y: 5 },
+                      visible: { opacity: 1, y: 0 }
+                    }}
+                    transition={prefersReduced ? { duration: 0 } : { duration: 0.25 }}
+                  >
+                    {word}
+                  </motion.span>
+                ))}
+              </motion.p>
+            </div>
+
+            <motion.p
+              className="mt-3 text-right font-mono text-sm text-slate-500 dark:text-slate-600"
+              {...fadeIn(2.5)}
+            >
+              — You, age 44
+            </motion.p>
+
+            <motion.p
+              className="mt-3 text-right font-sans text-sm text-slate-400 dark:text-slate-600"
+              initial={prefersReduced ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={prefersReduced ? { duration: 0 } : { delay: 3.2, duration: 0.6 }}
+            >
+              Then I got the diagnosis.
+            </motion.p>
+          </motion.div>
+
+          <motion.div
+            className="mt-12 flex w-full flex-col items-center"
+            {...fadeIn(3.8, 20)}
+          >
+            <h1 className="max-w-4xl text-center font-display text-5xl font-bold leading-tight text-slate-900 md:text-7xl dark:text-slate-100">
+              Meet the person your habits are building.
+            </h1>
+            <p className="mb-10 mt-4 text-center font-sans text-base text-slate-500 md:text-lg dark:text-slate-600">
+              Two minutes. Ten questions. No sugarcoating.
+            </p>
+
+            <motion.div
+              className="flex flex-col items-center justify-center gap-3 sm:flex-row"
+              initial={prefersReduced ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={prefersReduced ? { duration: 0 } : { delay: 4.3, duration: 0.6 }}
+            >
+              <motion.button
+                type="button"
+                onClick={() => router.push('/onboarding')}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-twin-dark px-8 py-4 font-sans text-base font-semibold text-white transition-colors hover:bg-twin-deeper dark:bg-twin dark:text-navy-950 dark:hover:bg-twin-dark"
+                whileHover={prefersReduced ? undefined : { scale: 1.03 }}
+                whileTap={prefersReduced ? undefined : { scale: 0.97 }}
+              >
+                Begin your awakening →
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => router.push('/login')}
+                className="rounded-full border border-black/15 px-6 py-4 font-sans text-base font-medium text-slate-500 transition-colors hover:border-black/30 hover:text-slate-800 dark:border-white/20 dark:text-slate-400 dark:hover:border-white/40 dark:hover:text-white"
+                whileHover={prefersReduced ? undefined : { scale: 1.03 }}
+                whileTap={prefersReduced ? undefined : { scale: 0.97 }}
+              >
+                Log in
+              </motion.button>
+            </motion.div>
+
+            <motion.p
+              className="mt-8 font-sans text-xs font-medium uppercase tracking-widest text-slate-400 dark:text-[#1E3A5F]"
+              initial={prefersReduced ? { opacity: 1 } : { opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={prefersReduced ? { duration: 0 } : { delay: 4.8, duration: 0.6 }}
+            >
+              Your future self has been waiting.
+            </motion.p>
+          </motion.div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -133,6 +133,8 @@ export default function OnboardingPage() {
       onBack={stepIndex > 0 ? () => setStepIndex((current) => current - 1) : undefined}
       nextLabel={stepIndex === STEPS.length - 2 ? (submitting ? 'Preparing...' : 'Continue') : 'Continue'}
       hideNext={isAuthStep}
+      exitHref="/"
+      exitLabel="Leave onboarding"
     >
       {submitError ? <p className="mb-4 rounded-xl border border-red-400/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{submitError}</p> : null}
 

@@ -1,7 +1,8 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { ArrowLeft, ArrowRight, X } from 'lucide-react';
 
 interface Props {
   step: number;
@@ -14,6 +15,8 @@ interface Props {
   onBack?: () => void;
   nextLabel?: string;
   hideNext?: boolean;
+  exitHref?: string;
+  exitLabel?: string;
 }
 
 export function StepWrapper({
@@ -26,10 +29,21 @@ export function StepWrapper({
   onNext,
   onBack,
   nextLabel = 'Continue',
-  hideNext = false
+  hideNext = false,
+  exitHref,
+  exitLabel = 'Exit'
 }: Props) {
   return (
     <main className="min-h-screen bg-navy-950 px-5">
+      {exitHref ? (
+        <Link
+          href={exitHref}
+          className="fixed left-5 top-6 z-50 inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-slate-500 transition hover:text-slate-200 sm:left-8"
+        >
+          <X className="h-4 w-4" />
+          {exitLabel}
+        </Link>
+      ) : null}
       <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col">
         <div className="pt-8">
           <div className="h-1 rounded-full bg-white/10">
