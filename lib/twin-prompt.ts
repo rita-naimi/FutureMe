@@ -1,10 +1,37 @@
 import type { HealthInputs, TwinProfile } from './fhir';
+import type { DailyGoal } from './store';
 import { computeBiologicalAge, computeRisks, getTopRisk } from './risks';
 
-export function buildSystemPrompt(profile: TwinProfile): string {
+type DailyGoalPromptContext = {
+  goal: DailyGoal | null;
+  streak: number;
+  bestStreak: number;
+};
+
+export function buildSystemPrompt(profile: TwinProfile, dailyGoalContext?: DailyGoalPromptContext): string {
   const { inputs, risks, biologicalAge, topRisk } = profile;
   const yearsAhead = 10;
   const futureAge = inputs.age + yearsAhead;
+  const goal = dailyGoalContext?.goal ?? null;
+  const streak = dailyGoalContext?.streak ?? 0;
+  const bestStreak = dailyGoalContext?.bestStreak ?? 0;
+  const lastCheckIn = goal?.checkIns?.length
+    ? [...goal.checkIns].sort((a, b) => b.date.localeCompare(a.date))[0]
+    : null;
+  const dailyGoalBlock = goal
+    ? `
+DAILY HABIT GOAL
+- Current goal: ${goal.habit}
+- Current streak: ${streak} day${streak !== 1 ? 's' : ''}
+- Best streak: ${bestStreak} days
+- Last check-in: ${lastCheckIn ? (lastCheckIn.completed ? 'completed' : 'missed') : 'none yet'}
+${streak === 0 && bestStreak > 0 ? `- They recently broke a ${bestStreak}-day streak.` : ''}
+
+Reference the streak naturally if directly relevant to the conversation.
+Be gentle about broken streaks. Be genuinely warm about long ones.
+Do not bring it up unprompted.
+`
+    : '';
 
   return `You are ${inputs.name}, speaking from ${yearsAhead} years in the future. You are now ${futureAge} years old.
 
@@ -43,6 +70,7 @@ Your current health data from the FHIR R4 profile:
 - Mental resilience score: ${100 - risks.mentalResilience}/100
 - Longevity trajectory: ${risks.longevity}/100
 - Top health concern: ${topRisk}
+${dailyGoalBlock}
 
 CRITICAL RULES:
 1. Always speak in first person as ${inputs.name}'s future self. You are them.

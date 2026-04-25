@@ -14,6 +14,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import dynamic from 'next/dynamic';
+import { DailyGoalCard } from '@/components/dashboard/DailyGoalCard';
 import { PageTransition } from '@/components/PageTransition';
 import type { HealthInputs, RiskScores } from '@/lib/fhir';
 
@@ -28,12 +29,6 @@ type Priority = {
   evidence: string;
 };
 
-type ProjectionPoint = {
-  age: number;
-  current: number;
-  optimized: number;
-};
-
 const CARD =
   'rounded-[1.65rem] border border-black/10 bg-white/80 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20';
 
@@ -46,29 +41,19 @@ export default function DashboardPage() {
 
     const hasSimulation = Boolean(simulatedInputs && !sameInputs(profile.inputs, simulatedInputs));
     const activeInputs = hasSimulation && simulatedInputs ? simulatedInputs : profile.inputs;
-    const currentRisks = computeRisks(profile.inputs);
     const activeRisks = computeRisks(activeInputs);
-    const optimizedInputs = hasSimulation && simulatedInputs ? simulatedInputs : getOptimizedInputs(profile.inputs);
-    const optimizedRisks = computeRisks(optimizedInputs);
     const biologicalAge = computeBiologicalAge(activeInputs, activeRisks);
     const priorities = getTopPriorities(activeInputs, activeRisks);
-    const projection = buildProjectionData(profile.inputs, currentRisks, optimizedInputs, optimizedRisks);
-    const projectionGap = getProjectionYearsGap(projection);
 
     return {
       activeInputs,
       activeRisks,
       biologicalAge,
       currentInputs: profile.inputs,
-      currentRisks,
       createdAt: profile.createdAt,
       hasSimulation,
       healthScore: healthScoreFromRisks(activeRisks),
-      optimizedInputs,
-      optimizedRisks,
-      priority: priorities[0],
-      projection,
-      projectionGap
+      priority: priorities[0]
     };
   }, [profile, simulatedInputs]);
 
@@ -130,15 +115,46 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <div className="grid gap-6 xl:grid-cols-[minmax(22rem,0.82fr)_minmax(0,1.45fr)]">
-            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-1">
+          <div className="grid gap-5 xl:grid-cols-12 xl:items-stretch">
+            <div className="xl:col-span-4">
               <BiologicalAgeHero
                 realAge={dashboard.activeInputs.age}
                 biologicalAge={dashboard.biologicalAge}
                 dateLabel={formatDate(dashboard.createdAt)}
               />
+            </div>
 
-              <section className={`${CARD} border-l-[6px] border-l-twin-dark p-5 dark:border-l-twin sm:p-6 xl:min-h-[18rem]`}>
+            <section className="grid grid-cols-2 gap-3 lg:gap-4 xl:col-span-8">
+              <RiskCard
+                index={0}
+                label="Cardiovascular risk"
+                value={dashboard.activeRisks.cardiovascular}
+                description="Heart, vessels, smoking, family history"
+              />
+              <RiskCard
+                index={1}
+                label="Metabolic risk"
+                value={dashboard.activeRisks.metabolic}
+                description="BMI, food quality, movement, diabetes history"
+              />
+              <RiskCard
+                index={2}
+                label="Stress load"
+                value={dashboard.activeRisks.mentalResilience}
+                description="Sleep, stress, recovery capacity"
+              />
+              <RiskCard
+                index={3}
+                label="Longevity drag"
+                value={100 - dashboard.activeRisks.longevity}
+                description="The drag against your long-term trajectory"
+              />
+            </section>
+
+            <div className="grid gap-4 xl:col-span-4">
+              <DailyGoalCard recommendedHabitKey={getRecommendedHabitKey(dashboard.priority.title)} />
+
+              <section className={`${CARD} border-l-[6px] border-l-twin-dark p-5 dark:border-l-twin sm:p-6`}>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-twin-dark dark:text-twin">
                   Your highest leverage change
                 </p>
@@ -158,45 +174,11 @@ export default function DashboardPage() {
               </section>
             </div>
 
-            <div className="space-y-6">
-              <section className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-                <RiskCard
-                  index={0}
-                  label="Cardiovascular risk"
-                  value={dashboard.activeRisks.cardiovascular}
-                  description="Heart, vessels, smoking, family history"
-                />
-                <RiskCard
-                  index={1}
-                  label="Metabolic risk"
-                  value={dashboard.activeRisks.metabolic}
-                  description="BMI, food quality, movement, diabetes history"
-                />
-                <RiskCard
-                  index={2}
-                  label="Stress load"
-                  value={dashboard.activeRisks.mentalResilience}
-                  description="Sleep, stress, recovery capacity"
-                />
-                <RiskCard
-                  index={3}
-                  label="Longevity drag"
-                  value={100 - dashboard.activeRisks.longevity}
-                  description="The drag against your long-term trajectory"
-                />
-              </section>
-
-              <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]">
-                <HabitRadarCard
-                  currentInputs={dashboard.currentInputs}
-                  simulatedInputs={dashboard.hasSimulation ? dashboard.activeInputs : null}
-                />
-                <MiniProjectionCard
-                  data={dashboard.projection}
-                  yearsGap={dashboard.projectionGap}
-                />
-              </section>
-            </div>
+            <HabitRadarCard
+              currentInputs={dashboard.currentInputs}
+              simulatedInputs={dashboard.hasSimulation ? dashboard.activeInputs : null}
+              className="xl:col-span-8"
+            />
           </div>
         </div>
       </PageTransition>
@@ -255,11 +237,11 @@ function BiologicalAgeHero({
   }, [biologicalAge, count]);
 
   return (
-    <section className={`${CARD} flex h-full flex-col justify-center p-7 text-center sm:p-9`}>
+    <section className={`${CARD} flex h-full min-h-[13.5rem] flex-col justify-center p-6 text-center sm:p-7`}>
       <p className="text-xs font-semibold uppercase tracking-[0.28em] text-slate-400 dark:text-slate-500">
         Biological age
       </p>
-      <motion.span className="mt-3 block font-display text-8xl font-bold leading-none tabular-nums text-slate-950 dark:text-white xl:text-9xl">
+      <motion.span className="mt-2 block font-display text-7xl font-bold leading-none tabular-nums text-slate-950 dark:text-white xl:text-8xl">
         {rounded}
       </motion.span>
       <div
@@ -277,8 +259,8 @@ function BiologicalAgeHero({
               isOlder ? 'older' : 'younger'
             } than your real age`}
       </div>
-      <p className="mt-4 text-xs text-slate-400 dark:text-slate-600">Based on your FHIR R4 profile · {dateLabel}</p>
-      <p className="mt-5 text-sm text-slate-500 dark:text-slate-500">
+      <p className="mt-3 text-xs text-slate-400 dark:text-slate-600">Based on your FHIR R4 profile · {dateLabel}</p>
+      <p className="mt-4 text-sm text-slate-500 dark:text-slate-500">
         Every habit you change on the Simulate page updates this number.
       </p>
     </section>
@@ -306,9 +288,8 @@ function RiskCard({
   }, [index, value]);
 
   return (
-    <article className={`${CARD} min-h-[13rem] p-4 text-center lg:min-h-[14rem]`}>
-      <p className="min-h-10 text-sm font-semibold leading-snug text-slate-900 dark:text-white">{label}</p>
-      <div className="relative mx-auto mt-2 h-24 w-24">
+    <article className={`${CARD} flex min-h-[10rem] items-center gap-4 p-4`}>
+      <div className="relative h-20 w-20 flex-shrink-0">
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart innerRadius="72%" outerRadius="100%" data={[{ value: animatedValue, fill: color }]} startAngle={220} endAngle={-40}>
             <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
@@ -323,20 +304,25 @@ function RiskCard({
           </RadialBarChart>
         </ResponsiveContainer>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display text-3xl font-bold tabular-nums text-slate-950 dark:text-white">{value}</span>
+          <span className="font-display text-2xl font-bold tabular-nums text-slate-950 dark:text-white">{value}</span>
         </div>
       </div>
-      <p className="mx-auto mt-2 max-w-[11rem] text-xs leading-relaxed text-slate-500 dark:text-slate-500">{description}</p>
+      <div className="min-w-0 text-left">
+        <p className="text-sm font-semibold leading-snug text-slate-900 dark:text-white">{label}</p>
+        <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-500">{description}</p>
+      </div>
     </article>
   );
 }
 
 function HabitRadarCard({
   currentInputs,
-  simulatedInputs
+  simulatedInputs,
+  className = ''
 }: {
   currentInputs: HealthInputs;
   simulatedInputs: HealthInputs | null;
+  className?: string;
 }) {
   const currentData = buildHabitData(currentInputs);
   const simulatedData = simulatedInputs ? buildHabitData(simulatedInputs) : null;
@@ -347,9 +333,9 @@ function HabitRadarCard({
   }));
 
   return (
-    <section className={`${CARD} p-5`}>
+    <section className={`${CARD} flex h-full min-h-[24rem] flex-col p-5 ${className}`}>
       <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Your habit fingerprint</h2>
-      <div className="mt-3 h-56 lg:h-72">
+      <div className="mt-3 min-h-[15rem] flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart data={chartData} margin={{ top: 8, right: 18, bottom: 8, left: 18 }}>
             <PolarGrid stroke="rgba(100,116,139,0.22)" />
@@ -375,46 +361,6 @@ function HabitRadarCard({
   );
 }
 
-function MiniProjectionCard({
-  data,
-  yearsGap
-}: {
-  data: ProjectionPoint[];
-  yearsGap: number;
-}) {
-  const first = data[0];
-  const last = data[data.length - 1];
-  const currentDrop = first && last ? Math.max(0, first.current - last.current) : 0;
-  const optimizedDrop = first && last ? Math.max(0, first.optimized - last.optimized) : 0;
-
-  return (
-    <section className={`${CARD} flex flex-col justify-between p-5`}>
-      <h2 className="text-sm font-semibold text-slate-950 dark:text-white">Your two futures</h2>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">
-        The detailed BP and biomarker trajectories now live at the bottom of Simulate.
-      </p>
-
-      <div className="mt-6 rounded-[1.4rem] border border-twin-dark/20 bg-twin-dark/10 p-5 text-twin-dark dark:border-twin/20 dark:bg-twin/10 dark:text-twin">
-        <p className="font-display text-5xl font-bold">{yearsGap}</p>
-        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em]">
-          {yearsGap === 1 ? 'year difference' : 'years difference'} by age {last?.age ?? 80}
-        </p>
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.05]">
-          <p className="font-mono text-lg font-semibold text-slate-950 dark:text-white">-{currentDrop}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">current path score drift</p>
-        </div>
-        <div className="rounded-2xl border border-black/10 bg-white/60 p-4 dark:border-white/10 dark:bg-white/[0.05]">
-          <p className="font-mono text-lg font-semibold text-twin-dark dark:text-twin">-{optimizedDrop}</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-500">optimized score drift</p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function getHeroSubtitle(bioAge: number, realAge: number, healthScore: number): string {
   const delta = Math.round(Math.abs(bioAge - realAge));
   if (bioAge > realAge + 2)
@@ -431,6 +377,16 @@ function getGreeting() {
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
+}
+
+function getRecommendedHabitKey(priorityTitle: string) {
+  const normalized = priorityTitle.toLowerCase();
+  if (normalized.includes('sleep')) return 'sleep';
+  if (normalized.includes('stress')) return 'stress';
+  if (normalized.includes('alcohol')) return 'alcohol';
+  if (normalized.includes('food')) return 'diet';
+  if (normalized.includes('movement') || normalized.includes('cardio') || normalized.includes('smoking')) return 'exercise';
+  return 'sleep';
 }
 
 function getTopPriorities(inputs: HealthInputs, risks: RiskScores): Priority[] {
@@ -497,65 +453,6 @@ function buildHabitData(inputs: HealthInputs) {
       value: inputs.smokingStatus === 'never' ? 100 : inputs.smokingStatus === 'former' ? 65 : 0
     }
   ];
-}
-
-function buildProjectionData(
-  inputs: HealthInputs,
-  currentRisks: RiskScores,
-  optimizedInputs: HealthInputs,
-  optimizedRisks: RiskScores
-): ProjectionPoint[] {
-  const startAge = inputs.age;
-  const endAge = Math.max(80, startAge + 10);
-  const improvement = Math.max(0, currentRisks.overall - optimizedRisks.overall);
-  const currentBase = healthScoreFromRisks(currentRisks);
-  const optimizedBase = healthScoreFromRisks(optimizedRisks);
-  const bioAgeGain = Math.max(0, computeBiologicalAge(inputs, currentRisks) - computeBiologicalAge(optimizedInputs, optimizedRisks));
-  const points: ProjectionPoint[] = [];
-
-  for (let age = startAge; age <= endAge; age += 5) {
-    const yearsAhead = age - startAge;
-    const currentScore = currentBase - yearsAhead * 0.82;
-    const optimizedScore = optimizedBase - yearsAhead * (0.52 - Math.min(0.24, improvement / 250)) + bioAgeGain * 1.5;
-
-    points.push({
-      age,
-      current: Math.max(0, Math.round(currentScore)),
-      optimized: Math.max(0, Math.min(100, Math.round(optimizedScore)))
-    });
-  }
-
-  if (points[points.length - 1]?.age !== endAge) {
-    const yearsAhead = endAge - startAge;
-    points.push({
-      age: endAge,
-      current: Math.max(0, Math.round(currentBase - yearsAhead * 0.82)),
-      optimized: Math.max(
-        0,
-        Math.min(100, Math.round(optimizedBase - yearsAhead * (0.52 - Math.min(0.24, improvement / 250)) + bioAgeGain * 1.5))
-      )
-    });
-  }
-
-  return points;
-}
-
-function getOptimizedInputs(inputs: HealthInputs): HealthInputs {
-  return {
-    ...inputs,
-    sleepHours: Math.max(inputs.sleepHours, 8),
-    exerciseDaysPerWeek: Math.max(inputs.exerciseDaysPerWeek, 5),
-    dietQuality: Math.max(inputs.dietQuality, 4),
-    stressLevel: Math.min(inputs.stressLevel, 2),
-    alcoholDrinksPerWeek: Math.min(inputs.alcoholDrinksPerWeek, 4),
-    smokingStatus: inputs.smokingStatus === 'current' ? 'former' : inputs.smokingStatus
-  };
-}
-
-function getProjectionYearsGap(data: ProjectionPoint[]) {
-  const finalPoint = data[data.length - 1];
-  if (!finalPoint) return 0;
-  return Math.max(1, Math.round(Math.max(0, finalPoint.optimized - finalPoint.current) / 6));
 }
 
 function getRiskColor(value: number) {

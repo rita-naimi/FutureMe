@@ -8,6 +8,18 @@ import type { PipelineResponse } from './backend/types';
 type ChatMessage = { role: 'user' | 'assistant'; content: string; inputMode?: 'text' | 'voice' };
 type AccountResult = { ok: true } | { ok: false; error: string };
 
+export interface CheckIn {
+  date: string;
+  completed: boolean;
+}
+
+export interface DailyGoal {
+  habit: string;
+  habitKey: string;
+  startDate: string;
+  checkIns: CheckIn[];
+}
+
 export interface FutureMeAccount {
   email: string;
   password: string;
@@ -15,6 +27,7 @@ export interface FutureMeAccount {
   profile: TwinProfile;
   profilePhotoDataUrl: string | null;
   pipelineAnalysis: PipelineResponse | null;
+  dailyGoal?: DailyGoal | null;
   updatedAt: string;
 }
 
@@ -25,6 +38,7 @@ interface FutureMeStore {
   pipelineAnalysis: PipelineResponse | null;
   currentUserEmail: string | null;
   profilePhotoDataUrl: string | null;
+  dailyGoal: DailyGoal | null;
   accounts: Record<string, FutureMeAccount>;
   setProfile: (profile: TwinProfile) => void;
   setSimulatedInputs: (inputs: HealthInputs) => void;
@@ -39,6 +53,11 @@ interface FutureMeStore {
   loginAccount: (email: string, password: string) => AccountResult;
   setProfilePhoto: (profilePhotoDataUrl: string | null) => void;
   logout: () => void;
+  setDailyGoal: (goal: DailyGoal) => void;
+  logCheckIn: (completed: boolean) => void;
+  getCurrentStreak: () => number;
+  getBestStreak: () => number;
+  hasCheckedInToday: () => boolean;
   addMessage: (message: ChatMessage) => void;
   replaceLastAssistantMessage: (content: string) => void;
   extractHabitChange: (message: string) => void;
@@ -47,6 +66,65 @@ interface FutureMeStore {
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function toDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const day = `${date.getDate()}`.padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(date: Date, amount: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + amount);
+  return next;
+}
+
+function getCheckInMap(goal: DailyGoal | null) {
+  return new Map((goal?.checkIns ?? []).map((checkIn) => [checkIn.date, checkIn.completed]));
+}
+
+function computeCurrentStreak(goal: DailyGoal | null) {
+  const checkIns = getCheckInMap(goal);
+  const today = new Date();
+  const todayKey = toDateKey(today);
+  const todayCompleted = checkIns.get(todayKey);
+
+  if (todayCompleted === false) return 0;
+
+  let cursor = todayCompleted === true ? today : addDays(today, -1);
+  let streak = 0;
+
+  while (checkIns.get(toDateKey(cursor)) === true) {
+    streak += 1;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streak;
+}
+
+function computeBestStreak(goal: DailyGoal | null) {
+  const sorted = Array.from(getCheckInMap(goal).entries()).sort(([a], [b]) => a.localeCompare(b));
+  let best = 0;
+  let current = 0;
+  let previousDate: Date | null = null;
+
+  for (const [date, completed] of sorted) {
+    const currentDate = new Date(`${date}T00:00:00`);
+    const isConsecutive = previousDate ? toDateKey(addDays(previousDate, 1)) === date : false;
+
+    if (completed) {
+      current = isConsecutive ? current + 1 : 1;
+      best = Math.max(best, current);
+      previousDate = currentDate;
+    } else {
+      current = 0;
+      previousDate = currentDate;
+    }
+  }
+
+  return best;
 }
 
 export const useFutureMeStore = create<FutureMeStore>()(
@@ -58,6 +136,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
       pipelineAnalysis: null,
       currentUserEmail: null,
       profilePhotoDataUrl: null,
+      dailyGoal: null,
       accounts: {},
 
       setProfile: (profile) =>
@@ -83,6 +162,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
                 profile,
                 profilePhotoDataUrl: state.profilePhotoDataUrl,
                 pipelineAnalysis: null,
+                dailyGoal: state.dailyGoal,
                 updatedAt: new Date().toISOString()
               }
             }
@@ -129,6 +209,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
           profile,
           profilePhotoDataUrl,
           pipelineAnalysis: analysis,
+          dailyGoal: null,
           updatedAt: new Date().toISOString()
         };
 
@@ -142,7 +223,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
           profilePhotoDataUrl,
           simulatedInputs: profile.inputs,
           chatHistory: [],
-          pipelineAnalysis: analysis
+          pipelineAnalysis: analysis,
+          dailyGoal: null
         }));
 
         return { ok: true };
@@ -161,7 +243,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
           profilePhotoDataUrl: account.profilePhotoDataUrl,
           simulatedInputs: account.profile.inputs,
           chatHistory: [],
-          pipelineAnalysis: account.pipelineAnalysis
+          pipelineAnalysis: account.pipelineAnalysis,
+          dailyGoal: account.dailyGoal ?? null
         });
 
         return { ok: true };
@@ -193,8 +276,74 @@ export const useFutureMeStore = create<FutureMeStore>()(
           profilePhotoDataUrl: null,
           simulatedInputs: null,
           chatHistory: [],
-          pipelineAnalysis: null
+          pipelineAnalysis: null,
+          dailyGoal: null
         }),
+
+      setDailyGoal: (goal) =>
+        set((state) => {
+          const dailyGoal = {
+            ...goal,
+            checkIns: goal.checkIns ?? []
+          };
+
+          if (!state.currentUserEmail) return { dailyGoal };
+          const account = state.accounts[state.currentUserEmail];
+          if (!account) return { dailyGoal };
+
+          return {
+            dailyGoal,
+            accounts: {
+              ...state.accounts,
+              [state.currentUserEmail]: {
+                ...account,
+                dailyGoal,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          };
+        }),
+
+      logCheckIn: (completed) =>
+        set((state) => {
+          if (!state.dailyGoal) return {};
+
+          const today = toDateKey(new Date());
+          const nextGoal = {
+            ...state.dailyGoal,
+            checkIns: [
+              ...state.dailyGoal.checkIns.filter((checkIn) => checkIn.date !== today),
+              { date: today, completed }
+            ].sort((a, b) => a.date.localeCompare(b.date))
+          };
+
+          if (!state.currentUserEmail) return { dailyGoal: nextGoal };
+          const account = state.accounts[state.currentUserEmail];
+          if (!account) return { dailyGoal: nextGoal };
+
+          return {
+            dailyGoal: nextGoal,
+            accounts: {
+              ...state.accounts,
+              [state.currentUserEmail]: {
+                ...account,
+                dailyGoal: nextGoal,
+                updatedAt: new Date().toISOString()
+              }
+            }
+          };
+        }),
+
+      getCurrentStreak: () => computeCurrentStreak(get().dailyGoal),
+
+      getBestStreak: () => computeBestStreak(get().dailyGoal),
+
+      hasCheckedInToday: () => {
+        const goal = get().dailyGoal;
+        if (!goal) return false;
+        const today = toDateKey(new Date());
+        return goal.checkIns.some((checkIn) => checkIn.date === today);
+      },
 
       addMessage: (message) => set((state) => ({ chatHistory: [...state.chatHistory, message] })),
 
@@ -247,7 +396,8 @@ export const useFutureMeStore = create<FutureMeStore>()(
           chatHistory: [],
           pipelineAnalysis: null,
           currentUserEmail: null,
-          profilePhotoDataUrl: null
+          profilePhotoDataUrl: null,
+          dailyGoal: null
         })
     }),
     {
@@ -259,6 +409,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
         pipelineAnalysis: state.pipelineAnalysis,
         currentUserEmail: state.currentUserEmail,
         profilePhotoDataUrl: state.profilePhotoDataUrl,
+        dailyGoal: state.dailyGoal,
         accounts: state.accounts
       })
     }

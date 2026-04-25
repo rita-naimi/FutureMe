@@ -186,14 +186,24 @@ export default function TwinPage() {
       let fullResponse = '';
 
       try {
+        const store = useFutureMeStore.getState();
+        const dailyGoalContext = store.dailyGoal
+          ? {
+              goal: store.dailyGoal,
+              streak: store.getCurrentStreak(),
+              bestStreak: store.getBestStreak()
+            }
+          : undefined;
+        const systemPrompt = buildSystemPrompt(activeProfile, dailyGoalContext);
+
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             systemPrompt:
               source === 'voice'
-                ? `${buildSystemPrompt(activeProfile)}\n\nVoice mode: reply like spoken conversation. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
-                : buildSystemPrompt(activeProfile),
+                ? `${systemPrompt}\n\nVoice mode: reply like spoken conversation. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
+                : systemPrompt,
             messages: outgoing
           })
         });
