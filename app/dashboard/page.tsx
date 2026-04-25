@@ -41,13 +41,17 @@ export default function DashboardPage() {
 
     const hasSimulation = Boolean(simulatedInputs && !sameInputs(profile.inputs, simulatedInputs));
     const activeInputs = hasSimulation && simulatedInputs ? simulatedInputs : profile.inputs;
+    const currentRisks = computeRisks(profile.inputs);
     const activeRisks = computeRisks(activeInputs);
     const biologicalAge = computeBiologicalAge(activeInputs, activeRisks);
+    const currentBiologicalAge = computeBiologicalAge(profile.inputs, currentRisks);
     const priorities = getTopPriorities(activeInputs, activeRisks);
 
     return {
       activeInputs,
       activeRisks,
+      avatarBiologicalAge: currentBiologicalAge,
+      avatarHealthScore: healthScoreFromRisks(currentRisks),
       biologicalAge,
       currentInputs: profile.inputs,
       createdAt: profile.createdAt,
@@ -104,9 +108,9 @@ export default function DashboardPage() {
 
             <div className="-my-5 h-auto w-36 flex-shrink-0 self-stretch overflow-hidden rounded-full sm:-my-6 lg:-my-7 lg:w-44">
               <TwinAvatarViewer
-                inputs={dashboard.activeInputs}
-                biologicalAge={dashboard.biologicalAge}
-                healthScore={dashboard.healthScore}
+                inputs={dashboard.currentInputs}
+                biologicalAge={dashboard.avatarBiologicalAge}
+                healthScore={dashboard.avatarHealthScore}
                 interactive={false}
                 height="100%"
                 minimal
