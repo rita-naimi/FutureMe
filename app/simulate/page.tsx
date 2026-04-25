@@ -176,8 +176,8 @@ export default function SimulatePage() {
             </button>
           </section>
 
-          <section className="relative overflow-hidden rounded-[1.7rem] border border-black/10 bg-white/70 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/72 dark:shadow-black/20 sm:p-7">
-            <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-twin-dark/10 dark:bg-twin/10" />
+          <section className="relative overflow-hidden rounded-[1.7rem] border border-black/10 bg-white/70 p-5 shadow-[0_24px_90px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20 sm:p-7">
+            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-twin-dark/8 dark:bg-twin/[0.06]" />
             <div className="relative">
               <div className="mb-7">
                 <p className="text-sm font-medium text-twin-dark dark:text-twin">Your updated future</p>
@@ -256,7 +256,7 @@ function FutureMessageLauncher({ onOpen }: { onOpen: () => void }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group flex w-full items-center gap-4 rounded-[1.5rem] border border-black/10 bg-white/85 p-5 text-left shadow-[0_18px_70px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:border-twin-dark/30 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none dark:hover:border-twin/35 dark:hover:bg-white/[0.06]"
+      className="group flex w-full items-center gap-4 rounded-[1.5rem] border border-black/10 bg-white/85 p-5 text-left shadow-[0_18px_70px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:border-twin-dark/30 hover:bg-white dark:border-white/10 dark:bg-white/[0.07] dark:shadow-none dark:hover:border-twin/35 dark:hover:bg-white/[0.10]"
     >
       <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-twin-dark/20 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
         <Mail className="h-5 w-5" />
@@ -296,7 +296,7 @@ function SliderRow({
 
   return (
     <div
-      className={`rounded-2xl border bg-white/55 p-4 transition dark:bg-white/[0.035] ${
+      className={`rounded-2xl border bg-white/55 p-4 transition dark:bg-white/[0.07] ${
         changed
           ? 'border-twin-dark/25 border-l-4 border-l-twin-dark dark:border-twin/25 dark:border-l-twin'
           : 'border-black/10 dark:border-white/10'
@@ -338,7 +338,7 @@ function SmokingToggle({
   const changed = value !== original;
   return (
     <div
-      className={`rounded-2xl border bg-white/55 p-4 transition dark:bg-white/[0.035] ${
+      className={`rounded-2xl border bg-white/55 p-4 transition dark:bg-white/[0.07] ${
         changed
           ? 'border-twin-dark/25 border-l-4 border-l-twin-dark dark:border-twin/25 dark:border-l-twin'
           : 'border-black/10 dark:border-white/10'
@@ -398,7 +398,7 @@ function BiologicalImpactCard({
   }, [bioAgeDelta]);
 
   return (
-    <article className="flex min-h-[16rem] flex-col justify-center rounded-[1.5rem] border border-black/10 bg-white/85 p-7 text-center shadow-[0_18px_70px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+    <article className="flex min-h-[16rem] flex-col justify-center rounded-[1.5rem] border border-black/10 bg-white/85 p-7 text-center shadow-[0_18px_70px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-white/[0.07] dark:shadow-none">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Biological age impact</p>
       {hasChanges ? (
         <>
@@ -427,7 +427,7 @@ function RiskDeltaCard({ label, current, simulated }: { label: string; current: 
   const better = delta > 0;
 
   return (
-    <article className="rounded-2xl border border-black/10 bg-white/72 p-4 dark:border-white/10 dark:bg-white/[0.035]">
+    <article className="rounded-2xl border border-black/10 bg-white/72 p-4 dark:border-white/10 dark:bg-white/[0.07]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-semibold text-slate-900 dark:text-white">{label}</p>
         {changed ? (
@@ -459,7 +459,7 @@ function RiskBar({ value, valueTone, barTone }: { value: number; valueTone: stri
 
 function TwinReactionCard({ loading, reaction }: { loading: boolean; reaction: string }) {
   return (
-    <article className="mt-5 rounded-[1.35rem] border border-black/10 border-l-4 border-l-twin-dark bg-white/75 p-5 dark:border-white/10 dark:border-l-twin dark:bg-white/[0.035]">
+    <article className="mt-5 rounded-[1.35rem] border border-black/10 border-l-4 border-l-twin-dark bg-white/75 p-5 dark:border-white/10 dark:border-l-twin dark:bg-white/[0.07]">
       <div className="flex gap-4">
         <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border border-twin-dark/20 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
           <InfinityIcon className="h-5 w-5" />
