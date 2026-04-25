@@ -1,8 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar as CalendarIcon, CheckCircle, Clock, Send, X } from 'lucide-react';
-import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
+import { Calendar, CheckCircle, Clock, Send, X } from 'lucide-react';
 
 interface TimeCapsuleProps {
   healthScore: number;
@@ -31,10 +30,11 @@ export default function TimeCapsule({
 
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 1);
+  const minDateStr = minDate.toISOString().split('T')[0];
 
   const maxDate = new Date();
   maxDate.setFullYear(maxDate.getFullYear() + 10);
-  const selectedDate = parseDateInput(customDate);
+  const maxDateStr = maxDate.toISOString().split('T')[0];
 
   function getSendDate(): Date {
     if (sendMode === 'now') return new Date();
@@ -43,7 +43,7 @@ export default function TimeCapsule({
       d.setMonth(d.getMonth() + months);
       return d;
     }
-    return parseDateInput(customDate) ?? new Date();
+    return new Date(customDate);
   }
 
   function formatSendDate(): string {
@@ -221,7 +221,7 @@ export default function TimeCapsule({
                   : 'border-black/10 text-slate-500 hover:border-twin-dark/30 dark:border-white/10 dark:text-slate-500'
               }`}
             >
-              <CalendarIcon className="h-3 w-3" />
+              <Calendar className="h-3 w-3" />
               Specific date
             </button>
           </div>
@@ -258,16 +258,15 @@ export default function TimeCapsule({
                 </p>
               </motion.div>
             ) : (
-              <motion.div key="date" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-2">
-                <ShadcnCalendar
-                  selected={selectedDate ?? undefined}
-                  fromDate={minDate}
-                  toDate={maxDate}
-                  onSelect={(date) => setCustomDate(formatDateInput(date))}
+              <motion.div key="date" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <input
+                  type="date"
+                  min={minDateStr}
+                  max={maxDateStr}
+                  value={customDate}
+                  onChange={(e) => setCustomDate(e.target.value)}
+                  className="w-full rounded-2xl border border-black/10 bg-white/60 px-4 py-3 text-sm text-slate-900 outline-none dark:border-white/10 dark:bg-white/[0.04] dark:text-white"
                 />
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  {selectedDate ? `Arrives on ${formatSendDate()}` : 'Choose a delivery date.'}
-                </p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -319,18 +318,4 @@ export default function TimeCapsule({
       </div>
     </div>
   );
-}
-
-function parseDateInput(value: string) {
-  if (!value) return null;
-  const [year, month, day] = value.split('-').map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
-}
-
-function formatDateInput(date: Date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
