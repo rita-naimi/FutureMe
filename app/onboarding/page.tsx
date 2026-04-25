@@ -15,7 +15,7 @@ import { CheckboxQuestion } from '@/components/onboarding/CheckboxQuestion';
 import { STEPS } from '@/components/onboarding/steps';
 import { runPipelineFromClient } from '@/lib/backend/client';
 import type { ClinicalMarkers, PipelineResponse } from '@/lib/backend/types';
-import type { HealthInputs, TwinProfile } from '@/lib/fhir';
+import type { TwinProfile } from '@/lib/fhir';
 import { createTwinProfile } from '@/lib/profile';
 import { useFutureMeStore } from '@/lib/store';
 

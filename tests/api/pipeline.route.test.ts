@@ -13,7 +13,7 @@ function buildRequest(body: unknown) {
 }
 
 function mockPubMedAndHf() {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
 
     if (url.includes('esearch.fcgi')) {
@@ -50,6 +50,10 @@ function mockPubMedAndHf() {
     }
 
     if (url.includes('router.huggingface.co/v1/chat/completions')) {
+      const body = JSON.parse(String(init?.body)) as { model: string; max_tokens: number };
+      expect(body.model).toBe('openai/gpt-oss-120b:fastest');
+      expect(body.max_tokens).toBe(1100);
+
       return new Response(
         JSON.stringify({
           choices: [{ message: { role: 'assistant', content: 'Synthese clinique testee.' } }]
@@ -71,6 +75,9 @@ describe('POST /api/pipeline', () => {
     process.env.PUBMED_CACHE_FILE = '/tmp/futureme-pubmed-test-cache.json';
     resetPubMedCacheForTests();
     process.env.HUGGINGFACE_API_KEY = 'test-token';
+    delete process.env.HF_MODEL;
+    delete process.env.HF_CLINICAL_MODEL;
+    delete process.env.HF_CLINICAL_MAX_TOKENS;
     process.env.PUBMED_CACHE_TTL_HOURS = '24';
   });
 

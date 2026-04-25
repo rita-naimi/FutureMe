@@ -9,7 +9,7 @@ Une implementation backend a ete ajoutee pour demarrer le pipeline du guide:
 - Estimation explicite des marqueurs cliniques manquants depuis le questionnaire utilisateur
 - Calcul d'indices de sante: Framingham, ASCVD proxy, metabolic syndrome proxy, allostatic load, Life Essential 8 proxy, lifestyle score
 - Recuperation contextuelle PubMed via eUtils NCBI
-- Generation de synthese clinique via BioMistral (`BioMistral/BioMistral-7B`) avec fallback local
+- Generation de synthese clinique via un modele open source/open-weight sur Hugging Face avec fallback local explicite
 - Construction d'un prompt structure pret pour un LLM biomedical
 
 ### Endpoint
@@ -65,6 +65,23 @@ Pour activer le branchement front sur `/api/pipeline` depuis onboarding/simulate
 ```bash
 NEXT_PUBLIC_USE_PIPELINE_API=1
 ```
+
+### Modele LLM open source
+
+Par defaut, le backend utilise Hugging Face Inference Providers avec `openai/gpt-oss-120b:fastest`.
+
+Variables utiles:
+
+```bash
+HUGGINGFACE_API_KEY=hf_xxxxx
+HF_MODEL=openai/gpt-oss-120b:fastest
+HF_CHAT_MODEL=openai/gpt-oss-120b:fastest
+HF_CLINICAL_MODEL=openai/gpt-oss-120b:fastest
+HF_CHAT_MAX_TOKENS=900
+HF_CLINICAL_MAX_TOKENS=1100
+```
+
+`HF_CHAT_MODEL` controle le chat `/api/chat`; `HF_CLINICAL_MODEL` controle la synthese `/api/pipeline`. Si le modele live n'est pas disponible, l'application affiche explicitement le fallback local au lieu de masquer l'erreur.
 
 ### Tests
 

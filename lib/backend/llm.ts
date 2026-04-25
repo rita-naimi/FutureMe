@@ -1,8 +1,10 @@
 import type { HealthInputs } from '@/lib/fhir';
+import {
+  generateHuggingFaceChatText,
+  getConfiguredHuggingFaceModel,
+  getPositiveNumberFromEnv
+} from './huggingface';
 import type { LlmOutput, PromptPayload, PubMedArticle, RiskEvidence } from './types';
-
-const MODEL_ID = process.env.HF_MODEL || 'meta-llama/Llama-3.1-8B-Instruct';
-const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
 
 function buildPubMedSection(articles: PubMedArticle[]) {
   if (articles.length === 0) {
@@ -31,42 +33,16 @@ function buildUserMessage(prompt: PromptPayload, articles: PubMedArticle[]) {
   ].join('\n');
 }
 
-async function generateWithHuggingFace(systemMsg: string, userMsg: string): Promise<string> {
-  const token = process.env.HUGGINGFACE_API_KEY;
-  if (!token) {
-    throw new Error('Missing HUGGINGFACE_API_KEY');
-  }
-
-  const response = await fetch(HF_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: MODEL_ID,
-      messages: [
-        { role: 'system', content: systemMsg },
-        { role: 'user', content: userMsg }
-      ],
-      max_tokens: 420,
-      temperature: 0.2,
-      stream: false
-    })
+async function generateWithHuggingFace(systemMsg: string, userMsg: string, model: string): Promise<string> {
+  return generateHuggingFaceChatText({
+    model,
+    messages: [
+      { role: 'system', content: systemMsg },
+      { role: 'user', content: userMsg }
+    ],
+    maxTokens: getPositiveNumberFromEnv('HF_CLINICAL_MAX_TOKENS', 1100),
+    temperature: getPositiveNumberFromEnv('HF_CLINICAL_TEMPERATURE', 0.2)
   });
-
-  if (!response.ok) {
-    throw new Error(`HuggingFace request failed (${response.status})`);
-  }
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string } }>;
-  };
-
-  const text = data.choices?.[0]?.message?.content?.trim();
-  if (text) return text;
-
-  throw new Error('No content returned by model');
 }
 
 function fallbackSummary(inputs: HealthInputs, risk: RiskEvidence, pubmedArticlesCount: number) {
@@ -92,17 +68,18 @@ export async function generateClinicalSummary(params: {
   pubmedArticles: PubMedArticle[];
 }): Promise<LlmOutput> {
   const userMsg = buildUserMessage(params.prompt, params.pubmedArticles);
+  const model = getConfiguredHuggingFaceModel('HF_CLINICAL_MODEL', 'HF_MODEL');
 
   try {
-    const summary = await generateWithHuggingFace(params.prompt.system, userMsg);
+    const summary = await generateWithHuggingFace(params.prompt.system, userMsg, model);
     return {
-      model: MODEL_ID,
+      model,
       summary,
       provider: 'huggingface'
     };
   } catch {
     return {
-      model: MODEL_ID,
+      model,
       summary: fallbackSummary(params.inputs, params.riskEvidence, params.pubmedArticles.length),
       provider: 'fallback'
     };

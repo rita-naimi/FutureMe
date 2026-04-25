@@ -43,16 +43,13 @@ function HeadModel({ healthScore }: { healthScore: number }) {
   useEffect(() => {
     const loader = new THREE.TextureLoader();
 
-    // Load base texture
-    const baseTexture = new THREE.TextureLoader().load('/models/Map-COL.jpg');
-    (baseTexture as any).encoding = 3001; // sRGB
+    const baseTexture = loader.load('/models/Map-COL.jpg', () => doBlend());
+    baseTexture.colorSpace = THREE.SRGBColorSpace;
 
-    // Load age texture  
-    const ageTexture = new THREE.TextureLoader().load(`/models/Map-AGE-male-${vs.ageMap}.png`);
-    (ageTexture as any).encoding = 3001;
+    const ageTexture = loader.load(`/models/Map-AGE-male-${vs.ageMap}.png`, () => doBlend());
+    ageTexture.colorSpace = THREE.SRGBColorSpace;
 
     const normalTexture = loader.load('/models/Map-NOR.jpg');
-    const specTexture = loader.load('/models/Map-SPEC.jpg');
 
     // Canvas to blend base + age
     const canvas = document.createElement('canvas');
@@ -60,7 +57,7 @@ function HeadModel({ healthScore }: { healthScore: number }) {
     canvas.height = 1024;
     const ctx = canvas.getContext('2d')!;
     const blended = new THREE.CanvasTexture(canvas);
-    (blended as any).encoding = 3001;
+    blended.colorSpace = THREE.SRGBColorSpace;
 
     function applyToScene() {
       scene.traverse((child) => {
@@ -97,9 +94,6 @@ function HeadModel({ healthScore }: { healthScore: number }) {
       applyToScene();
     }
 
-    baseTexture.onLoad = doBlend;
-    ageTexture.onLoad = doBlend;
-
     const t1 = setTimeout(doBlend, 500);
     const t2 = setTimeout(doBlend, 1500);
     const t3 = setTimeout(doBlend, 4000);
@@ -128,7 +122,7 @@ interface TwinAvatarViewerProps {
   gender?: string;
 }
 
-export default function TwinAvatarViewer({ healthScore = 70, gender = 'male' }: TwinAvatarViewerProps) {
+export default function TwinAvatarViewer({ healthScore = 70 }: TwinAvatarViewerProps) {
   const vs = getVisualState(healthScore);
   const lightColor = getLightColor(healthScore);
   const lightInt = healthScore >= 65 ? 2.4 : healthScore >= 35 ? 1.8 : 1.4;

@@ -301,7 +301,14 @@ export default function SimulatePage() {
 
                 {pipelineAnalysis.llm ? (
                   <article className="glass-panel rounded-2xl p-4">
-                    <h3 className="text-sm font-semibold text-white">LLM Synthesis ({pipelineAnalysis.llm.model})</h3>
+                    <h3 className="text-sm font-semibold text-white">
+                      LLM Synthesis ({pipelineAnalysis.llm.provider}: {pipelineAnalysis.llm.model})
+                    </h3>
+                    {pipelineAnalysis.llm.provider === 'fallback' ? (
+                      <p className="mt-2 text-xs text-amber-200">
+                        Live open-source model unavailable. Showing the deterministic local fallback.
+                      </p>
+                    ) : null}
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">{pipelineAnalysis.llm.summary}</p>
                   </article>
                 ) : null}

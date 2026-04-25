@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ============================================================
- *  CHAT LIVE avec BioMistral-7B — FutureMe
+ *  CHAT LIVE avec un modele open source Hugging Face — FutureMe
  *
  *  Usage :
  *    1. Démarre le serveur Next.js dans un autre terminal :
@@ -52,7 +52,7 @@ const MES_DONNEES = {
 };
 
 const PIPELINE_URL = process.env.PIPELINE_URL || 'http://localhost:3000/api/pipeline';
-const MODEL_ID = process.env.HF_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';  //meta-llama/Llama-3.1-8B-Instruct
+const MODEL_ID = process.env.HF_CHAT_MODEL || process.env.HF_MODEL || 'openai/gpt-oss-120b:fastest';
 const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
 
 // ─── couleurs ANSI ──────────────────────────────────────────
@@ -242,7 +242,7 @@ async function chat(systemPrompt, pipelineSnapshot) {
     } catch (err) {
       log(C.red, `\n  ❌ ${err.message}`);
       if (err.message.includes('503') || err.message.includes('loading')) {
-        log(C.yellow, '  💤 BioMistral est en train de se charger sur HF (cold start), réessaie dans 30s.');
+        log(C.yellow, '  💤 Le modele open source est en train de se charger sur HF (cold start), réessaie dans 30s.');
       }
       console.log();
     }

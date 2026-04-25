@@ -45,7 +45,7 @@ const MES_DONNEES: PipelineRequest = {
   // ─── OPTIONS PIPELINE ────────────────────────────────────────────────────
   yearsOfHistory: 10,        // 5 ou 10 ans de projection
   kNearest: 3,               // patients synthétiques similaires (1-10)
-  enableLlmSummary: true,    // active le résumé BioMistral (nécessite HUGGINGFACE_API_KEY)
+  enableLlmSummary: true,    // active le résumé LLM open source (nécessite HUGGINGFACE_API_KEY)
   includePubMed: false,      // désactivé par défaut (plus lent, nécessite internet)
   enableLocalRagCache: true,
 };
@@ -145,7 +145,7 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
 
   // ── Résumé LLM ──
   if (llm) {
-    console.log(`🤖  RÉSUMÉ LLM (${llm.provider === 'huggingface' ? 'BioMistral via HuggingFace' : 'Fallback déterministe'})`);
+    console.log(`🤖  RÉSUMÉ LLM (${llm.provider === 'huggingface' ? `HuggingFace ${llm.model}` : 'Fallback déterministe'})`);
     console.log('  ─────────────────────────────────────');
     llm.summary.split('\n').forEach(line => console.log(`  ${line}`));
     console.log();

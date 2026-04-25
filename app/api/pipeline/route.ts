@@ -89,7 +89,9 @@ function normalizePipelineRequest(raw: unknown) {
   const clinicalMarkers =
     (data.clinicalMarkers as Record<string, unknown>) ?? buildClinicalMarkersFromAppleHealth(parsedApple.data);
 
-  const { appleHealth: _appleHealth, ...rest } = data;
+  const rest = { ...data };
+  delete rest.appleHealth;
+
   return {
     ...rest,
     inputs,
