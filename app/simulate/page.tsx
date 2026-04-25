@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { ArrowDown, ArrowRight, ArrowUp, Infinity as InfinityIcon, SlidersHorizontal } from 'lucide-react';
-import { animate, motion } from 'framer-motion';
+import { ArrowDown, ArrowRight, ArrowUp, Infinity as InfinityIcon, Mail, SlidersHorizontal } from 'lucide-react';
+import { AnimatePresence, animate, motion } from 'framer-motion';
 import { PageTransition } from '@/components/PageTransition';
+import TimeCapsule from '@/components/TimeCapsule';
 import type { HealthInputs, RiskScores } from '@/lib/fhir';
 import { computeBiologicalAge, computeRisks } from '@/lib/risks';
 import { createTwinProfile } from '@/lib/profile';
@@ -44,8 +45,10 @@ export default function SimulatePage() {
   const profile = useFutureMeStore((state) => state.profile);
   const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
   const setSimulatedInputs = useFutureMeStore((state) => state.setSimulatedInputs);
+  const currentUserEmail = useFutureMeStore((state) => state.currentUserEmail);
   const [reaction, setReaction] = useState('Adjust a habit and I will tell you what changed from my side of time.');
   const [reactionLoading, setReactionLoading] = useState(false);
+  const [timeCapsuleOpen, setTimeCapsuleOpen] = useState(false);
 
   const currentRisks = useMemo(() => (profile ? computeRisks(profile.inputs) : null), [profile]);
   const simulatedRisks = useMemo(() => (simulatedInputs ? computeRisks(simulatedInputs) : null), [simulatedInputs]);
@@ -125,6 +128,7 @@ export default function SimulatePage() {
   }
 
   const bioAgeDelta = simulatedBioAge - currentBioAge;
+  const currentHealthScore = 100 - currentRisks.overall;
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-ivory to-ivory-dark px-5 pb-32 pt-8 dark:bg-navy-950 dark:bg-none sm:px-8 lg:px-10">
@@ -180,18 +184,21 @@ export default function SimulatePage() {
                 <h2 className="mt-2 font-display text-4xl font-bold leading-tight text-slate-950 dark:text-white">The payoff, live.</h2>
               </div>
 
-              <div className="grid gap-5 xl:grid-cols-[0.88fr_1fr]">
+              <div className="grid items-stretch gap-5 xl:grid-cols-[0.88fr_1fr]">
                 <TwinAvatarViewer
                   inputs={simulatedInputs}
                   biologicalAge={simulatedBioAge}
                   healthScore={100 - simulatedRisks.overall}
                 />
-                <BiologicalImpactCard
-                  hasChanges={hasChanges}
-                  bioAgeDelta={bioAgeDelta}
-                  currentBioAge={currentBioAge}
-                  simulatedBioAge={simulatedBioAge}
-                />
+                <div className="grid gap-4 xl:grid-rows-[1fr_auto]">
+                  <BiologicalImpactCard
+                    hasChanges={hasChanges}
+                    bioAgeDelta={bioAgeDelta}
+                    currentBioAge={currentBioAge}
+                    simulatedBioAge={simulatedBioAge}
+                  />
+                  <FutureMessageLauncher onOpen={() => setTimeCapsuleOpen(true)} />
+                </div>
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -206,8 +213,62 @@ export default function SimulatePage() {
             </div>
           </section>
         </div>
+
+        <AnimatePresence>
+          {timeCapsuleOpen ? (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setTimeCapsuleOpen(false)}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-label="Send a message to your future self"
+                className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-[1.5rem] outline-none"
+                initial={{ opacity: 0, y: 18, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <TimeCapsule
+                  healthScore={currentHealthScore}
+                  biologicalAge={currentBioAge}
+                  realAge={profile.inputs.age}
+                  name={profile.inputs.name}
+                  userEmail={currentUserEmail ?? ''}
+                  onClose={() => setTimeCapsuleOpen(false)}
+                />
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
       </PageTransition>
     </main>
+  );
+}
+
+function FutureMessageLauncher({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group flex w-full items-center gap-4 rounded-[1.5rem] border border-black/10 bg-white/85 p-5 text-left shadow-[0_18px_70px_rgba(15,23,42,0.07)] transition hover:-translate-y-0.5 hover:border-twin-dark/30 hover:bg-white dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none dark:hover:border-twin/35 dark:hover:bg-white/[0.06]"
+    >
+      <span className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border border-twin-dark/20 bg-twin-dark/10 text-twin-dark dark:border-twin/25 dark:bg-twin/10 dark:text-twin">
+        <Mail className="h-5 w-5" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-semibold text-slate-950 dark:text-white">Message your future self</span>
+        <span className="mt-1 block text-xs leading-relaxed text-slate-500 dark:text-slate-500">
+          Send now or schedule a real email with today&apos;s health snapshot.
+        </span>
+      </span>
+      <ArrowRight className="h-4 w-4 flex-shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-twin-dark dark:group-hover:text-twin" />
+    </button>
   );
 }
 
@@ -337,7 +398,7 @@ function BiologicalImpactCard({
   }, [bioAgeDelta]);
 
   return (
-    <article className="rounded-[1.5rem] border border-black/10 bg-white/85 p-7 text-center shadow-[0_18px_70px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+    <article className="flex min-h-[16rem] flex-col justify-center rounded-[1.5rem] border border-black/10 bg-white/85 p-7 text-center shadow-[0_18px_70px_rgba(15,23,42,0.07)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
       <p className="text-xs font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">Biological age impact</p>
       {hasChanges ? (
         <>
