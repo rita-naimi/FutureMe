@@ -49,8 +49,13 @@ function mockPubMedAndHf() {
       );
     }
 
-    if (url.includes('api-inference.huggingface.co/models/BioMistral/BioMistral-7B')) {
-      return new Response(JSON.stringify([{ generated_text: 'Synthese clinique testee.' }]), { status: 200 });
+    if (url.includes('router.huggingface.co/v1/chat/completions')) {
+      return new Response(
+        JSON.stringify({
+          choices: [{ message: { role: 'assistant', content: 'Synthese clinique testee.' } }]
+        }),
+        { status: 200 }
+      );
     }
 
     return new Response('{}', { status: 404 });

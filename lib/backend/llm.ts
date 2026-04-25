@@ -1,7 +1,8 @@
 import type { HealthInputs } from '@/lib/fhir';
 import type { LlmOutput, PromptPayload, PubMedArticle, RiskEvidence } from './types';
 
-const MODEL_ID = 'BioMistral/BioMistral-7B';
+const MODEL_ID = process.env.HF_MODEL || 'mistralai/Mistral-7B-Instruct-v0.3';
+const HF_URL = 'https://router.huggingface.co/v1/chat/completions';
 
 function buildPubMedSection(articles: PubMedArticle[]) {
   if (articles.length === 0) {
@@ -19,10 +20,8 @@ function buildPubMedSection(articles: PubMedArticle[]) {
     .join('\n\n');
 }
 
-function buildModelInput(prompt: PromptPayload, articles: PubMedArticle[]) {
+function buildUserMessage(prompt: PromptPayload, articles: PubMedArticle[]) {
   return [
-    prompt.system,
-    '',
     prompt.user,
     '',
     '### Contexte PubMed (utiliser uniquement comme support, ne pas inventer de citation)',
@@ -32,26 +31,27 @@ function buildModelInput(prompt: PromptPayload, articles: PubMedArticle[]) {
   ].join('\n');
 }
 
-async function generateWithHuggingFace(input: string): Promise<string> {
+async function generateWithHuggingFace(systemMsg: string, userMsg: string): Promise<string> {
   const token = process.env.HUGGINGFACE_API_KEY;
   if (!token) {
     throw new Error('Missing HUGGINGFACE_API_KEY');
   }
 
-  const response = await fetch(`https://api-inference.huggingface.co/models/${MODEL_ID}`, {
+  const response = await fetch(HF_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      inputs: input,
-      parameters: {
-        max_new_tokens: 420,
-        temperature: 0.2,
-        do_sample: true,
-        return_full_text: false
-      }
+      model: MODEL_ID,
+      messages: [
+        { role: 'system', content: systemMsg },
+        { role: 'user', content: userMsg }
+      ],
+      max_tokens: 420,
+      temperature: 0.2,
+      stream: false
     })
   });
 
@@ -59,16 +59,14 @@ async function generateWithHuggingFace(input: string): Promise<string> {
     throw new Error(`HuggingFace request failed (${response.status})`);
   }
 
-  const data = (await response.json()) as Array<{ generated_text?: string }> | { generated_text?: string };
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
 
-  if (Array.isArray(data)) {
-    const text = data[0]?.generated_text?.trim();
-    if (text) return text;
-  } else if (typeof data.generated_text === 'string' && data.generated_text.trim()) {
-    return data.generated_text.trim();
-  }
+  const text = data.choices?.[0]?.message?.content?.trim();
+  if (text) return text;
 
-  throw new Error('No generated_text returned by model');
+  throw new Error('No content returned by model');
 }
 
 function fallbackSummary(inputs: HealthInputs, risk: RiskEvidence, pubmedArticlesCount: number) {
@@ -93,10 +91,10 @@ export async function generateClinicalSummary(params: {
   prompt: PromptPayload;
   pubmedArticles: PubMedArticle[];
 }): Promise<LlmOutput> {
-  const input = buildModelInput(params.prompt, params.pubmedArticles);
+  const userMsg = buildUserMessage(params.prompt, params.pubmedArticles);
 
   try {
-    const summary = await generateWithHuggingFace(input);
+    const summary = await generateWithHuggingFace(params.prompt.system, userMsg);
     return {
       model: MODEL_ID,
       summary,

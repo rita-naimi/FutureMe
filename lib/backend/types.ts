@@ -29,6 +29,11 @@ export interface SyntheticMatch {
   historyYears: HistoryYears;
   source: 'synthea-fhir' | 'synthea-seed';
   inputs: HealthInputs;
+  clinicalMarkers?: ClinicalMarkers;
+}
+
+export interface DerivedClinicalMarkers extends ClinicalMarkers {
+  source: 'user-provided' | 'cohort-knn' | 'estimated';
 }
 
 export interface RiskEvidence {
@@ -74,5 +79,6 @@ export interface PipelineResponse {
     articles: PubMedArticle[];
   };
   llm?: LlmOutput;
+  derivedClinicalMarkers?: DerivedClinicalMarkers;
   generatedAt: string;
 }

@@ -1,9 +1,16 @@
 import type { HealthInputs } from '@/lib/fhir';
-import type { HistoryYears, SyntheticMatch } from './types';
+import type { ClinicalMarkers, HistoryYears, SyntheticMatch } from './types';
 import { ALEX_PERSONA } from '@/data/synthea/alex';
 import { JAMES_PERSONA } from '@/data/synthea/james';
 import { MAYA_PERSONA } from '@/data/synthea/maya';
 import { loadSyntheaBundles } from './syntheaFhir';
+
+interface CohortEntry {
+  syntheticId: string;
+  inputs: HealthInputs;
+  source: 'synthea-fhir' | 'synthea-seed';
+  clinicalMarkers?: ClinicalMarkers;
+}
 
 const SEED_COHORT: Array<{ syntheticId: string; inputs: HealthInputs }> = [
   { syntheticId: 'synthea-alex-seed', inputs: ALEX_PERSONA },
@@ -11,13 +18,14 @@ const SEED_COHORT: Array<{ syntheticId: string; inputs: HealthInputs }> = [
   { syntheticId: 'synthea-maya-seed', inputs: MAYA_PERSONA }
 ];
 
-function getSyntheaCohort() {
+function getSyntheaCohort(): CohortEntry[] {
   const bundles = loadSyntheaBundles();
   if (bundles.length > 0) {
-    return bundles.map((item: { syntheticId: string; inputs: HealthInputs }) => ({
+    return bundles.map((item) => ({
       syntheticId: item.syntheticId,
       inputs: item.inputs,
-      source: 'synthea-fhir' as const
+      source: 'synthea-fhir' as const,
+      clinicalMarkers: item.clinicalMarkers
     }));
   }
 
@@ -78,6 +86,20 @@ export function getSyntheaSeedCandidates() {
   return getSyntheaCohort();
 }
 
+export function retroProjectInputs(real: HealthInputs, yearsBack: number): HealthInputs {
+  const projectedAge = Math.max(1, real.age - yearsBack);
+  const currentBmi = real.weightKg / Math.pow(real.heightCm / 100, 2);
+  const projectedBmi = Math.max(15, currentBmi - 0.15 * yearsBack);
+  const projectedWeight = Number((projectedBmi * Math.pow(real.heightCm / 100, 2)).toFixed(1));
+
+  return {
+    ...real,
+    age: projectedAge,
+    weightKg: projectedWeight,
+    existingConditions: []
+  };
+}
+
 export function findNearestSyntheticPatients(
   real: HealthInputs,
   yearsOfHistory: HistoryYears,
@@ -87,7 +109,7 @@ export function findNearestSyntheticPatients(
   const boundedK = Math.max(1, Math.min(kNearest, cohort.length));
 
   return cohort
-    .map(({ syntheticId, inputs, source }: { syntheticId: string; inputs: HealthInputs; source: 'synthea-fhir' | 'synthea-seed' }) => {
+    .map(({ syntheticId, inputs, source, clinicalMarkers }) => {
       const distance = Number(computeDistance(real, inputs).toFixed(4));
       return {
         syntheticId,
@@ -96,7 +118,8 @@ export function findNearestSyntheticPatients(
         similarity: Number((1 - distance).toFixed(4)),
         historyYears: yearsOfHistory,
         source,
-        inputs
+        inputs,
+        clinicalMarkers
       };
     })
     .sort((a: SyntheticMatch, b: SyntheticMatch) => a.distance - b.distance)

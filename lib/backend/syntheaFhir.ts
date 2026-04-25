@@ -175,10 +175,16 @@ export function extractClinicalMarkersFromBundle(bundle: BundleLike) {
   };
 }
 
-export function loadSyntheaBundles(): Array<{ syntheticId: string; bundle: BundleLike; inputs: HealthInputs }> {
+export function loadSyntheaBundles(): Array<{
+  syntheticId: string;
+  bundle: BundleLike;
+  inputs: HealthInputs;
+  clinicalMarkers: ReturnType<typeof extractClinicalMarkersFromBundle>;
+}> {
   return BUNDLES.map((item) => ({
     syntheticId: item.syntheticId,
     bundle: item.bundle,
-    inputs: extractHealthInputsFromBundle(item.bundle, item.syntheticId)
+    inputs: extractHealthInputsFromBundle(item.bundle, item.syntheticId),
+    clinicalMarkers: extractClinicalMarkersFromBundle(item.bundle)
   }));
 }
