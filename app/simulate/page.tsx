@@ -297,9 +297,15 @@ function HorizonControl({
         className="lab-slider w-full"
         style={{ ['--slider-fill' as string]: `${fill}%` }}
       />
-      <div className="mt-2 grid grid-cols-4 text-center font-mono text-[11px] text-slate-400 dark:text-slate-600">
+      <div className="relative mt-2 h-5 font-mono text-[11px] text-slate-400 dark:text-slate-600">
         {HORIZONS.map((year) => (
-          <span key={year}>{year}y</span>
+          <span
+            key={year}
+            className="absolute -translate-x-1/2"
+            style={{ left: `${((year - 10) / 30) * 100}%` }}
+          >
+            {year}y
+          </span>
         ))}
       </div>
     </section>
