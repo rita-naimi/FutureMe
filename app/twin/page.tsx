@@ -38,26 +38,11 @@ export default function TwinPage() {
   const speechActiveRef = useRef(false);
   const speechSessionRef = useRef(0);
   const speechCompleteRef = useRef<(() => void) | null>(null);
-  const neuralAudioRef = useRef<HTMLAudioElement | null>(null);
-  const neuralAudioUrlRef = useRef<string | null>(null);
-  const neuralTtsAbortRef = useRef<AbortController | null>(null);
 
   const activeProfile = useMemo(() => {
     if (!profile) return null;
     return createTwinProfile(simulatedInputs ?? profile.inputs, profile.fhirSource);
   }, [profile, simulatedInputs]);
-
-  const stopNeuralSpeech = useCallback(() => {
-    neuralTtsAbortRef.current?.abort();
-    neuralTtsAbortRef.current = null;
-    neuralAudioRef.current?.pause();
-    neuralAudioRef.current = null;
-
-    if (neuralAudioUrlRef.current) {
-      URL.revokeObjectURL(neuralAudioUrlRef.current);
-      neuralAudioUrlRef.current = null;
-    }
-  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -82,10 +67,9 @@ export default function TwinPage() {
       speechPendingRef.current = '';
       speechActiveRef.current = false;
       speechCompleteRef.current = null;
-      stopNeuralSpeech();
       window.speechSynthesis?.cancel();
     };
-  }, [stopNeuralSpeech]);
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined;
@@ -124,9 +108,8 @@ export default function TwinPage() {
     speechPendingRef.current = '';
     speechActiveRef.current = false;
     speechCompleteRef.current = null;
-    stopNeuralSpeech();
     window.speechSynthesis?.cancel();
-  }, [stopNeuralSpeech]);
+  }, []);
 
   const finishSpeechIfDone = useCallback((session: number) => {
     if (session !== speechSessionRef.current || speechActiveRef.current || speechQueueRef.current.length > 0 || speechPendingRef.current.trim()) return;
@@ -193,61 +176,6 @@ export default function TwinPage() {
     [drainSpeechQueue, finishSpeechIfDone]
   );
 
-  const playNeuralSpeech = useCallback(
-    async (text: string) => {
-      if (typeof window === 'undefined') return true;
-      const cleanText = cleanSpeechText(text);
-      if (!cleanText) return true;
-
-      const controller = new AbortController();
-      neuralTtsAbortRef.current = controller;
-      setOrbState('speaking');
-      setIsSpeaking(true);
-
-      try {
-        const response = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text: cleanText }),
-          signal: controller.signal
-        });
-
-        if (!response.ok) {
-          setToast(await getTtsErrorMessage(response));
-          return true;
-        }
-
-        const audioBlob = await response.blob();
-        if (controller.signal.aborted) return true;
-
-        const audioUrl = URL.createObjectURL(audioBlob);
-        neuralAudioUrlRef.current = audioUrl;
-        const audio = new Audio(audioUrl);
-        neuralAudioRef.current = audio;
-
-        await new Promise<void>((resolve, reject) => {
-          audio.onended = () => resolve();
-          audio.onerror = () => reject(new Error('TTS audio playback failed'));
-          audio.play().catch(reject);
-        });
-
-        return true;
-      } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') return true;
-        setToast('Voice synthesis is unavailable right now. Check Kokoro install, OpenAI quota, or the dev server env.');
-        return true;
-      } finally {
-        if (neuralTtsAbortRef.current === controller) neuralTtsAbortRef.current = null;
-        neuralAudioRef.current = null;
-        if (neuralAudioUrlRef.current) {
-          URL.revokeObjectURL(neuralAudioUrlRef.current);
-          neuralAudioUrlRef.current = null;
-        }
-      }
-    },
-    []
-  );
-
   const sendMessage = useCallback(
     async (text: string, forceVoiceReply = false, source: 'text' | 'voice' = 'text') => {
       if (!text.trim() || !activeProfile || isStreaming) return;
@@ -288,7 +216,7 @@ export default function TwinPage() {
           body: JSON.stringify({
             systemPrompt:
               shouldSpeakReply
-                ? `${systemPrompt}\n\nVoice mode: always answer in English, even if the user's transcript contains French. Override the same-language rule for voice messages. Reply like natural spoken conversation. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
+                ? `${systemPrompt}\n\nVoice mode: always answer in English, even if the user's transcript contains French. Override the same-language rule for voice messages. Start with one very short complete sentence under eight words, then continue naturally. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
                 : systemPrompt,
             messages: outgoing
           })
@@ -320,23 +248,18 @@ export default function TwinPage() {
             const parsed = JSON.parse(data) as { text: string };
             fullResponse += parsed.text;
             replaceLastAssistantMessage(fullResponse);
+            if (shouldSpeakReply) {
+              queueSpeech(parsed.text);
+            }
           }
         }
 
         if (shouldSpeakReply && fullResponse.trim()) {
-          const spokeWithNeuralVoice = await playNeuralSpeech(fullResponse);
-          if (!spokeWithNeuralVoice) {
-            queueSpeech(fullResponse, true, () => {
-              setIsSpeaking(false);
-              setOrbState('idle');
-              setVoiceFocusActive(false);
-            });
-            return;
-          }
-
-          setIsSpeaking(false);
-          setOrbState('idle');
-          setVoiceFocusActive(false);
+          queueSpeech('', true, () => {
+            setIsSpeaking(false);
+            setOrbState('idle');
+            setVoiceFocusActive(false);
+          });
         } else if (source === 'voice') {
           setOrbState('idle');
           setVoiceFocusActive(false);
@@ -349,19 +272,11 @@ export default function TwinPage() {
         replaceLastAssistantMessage(fallback);
         if (shouldSpeakReply) {
           stopSpeech();
-          const spokeWithNeuralVoice = await playNeuralSpeech(fallback);
-          if (!spokeWithNeuralVoice) {
-            queueSpeech(fallback, true, () => {
-              setIsSpeaking(false);
-              setOrbState('idle');
-              setVoiceFocusActive(false);
-            });
-            return;
-          }
-
+          queueSpeech(fallback, true, () => {
             setIsSpeaking(false);
             setOrbState('idle');
             setVoiceFocusActive(false);
+          });
           return;
         } else if (source === 'voice') {
           setOrbState('error');
@@ -377,7 +292,7 @@ export default function TwinPage() {
         setIsStreaming(false);
       }
     },
-    [activeProfile, addMessage, extractHabitChange, isStreaming, playNeuralSpeech, queueSpeech, replaceLastAssistantMessage, stopSpeech, voiceRepliesEnabled]
+    [activeProfile, addMessage, extractHabitChange, isStreaming, queueSpeech, replaceLastAssistantMessage, stopSpeech, voiceRepliesEnabled]
   );
 
   const toggleVoiceReplies = useCallback(() => {
@@ -607,16 +522,14 @@ function extractSpeakableSegments(value: string, final: boolean) {
 }
 
 function findSpeakableSegmentEnd(value: string, final: boolean) {
-  const regex = /[.!?…]\s+/g;
+  const regex = /[.!?…](?:\s+|$)/g;
   let match: RegExpExecArray | null;
-  let matchCount = 0;
 
   while ((match = regex.exec(value)) !== null) {
-    matchCount += 1;
     const index = match.index;
     const end = index + match[0].length;
     const candidate = cleanSpeechText(value.slice(0, end));
-    if (final || candidate.length >= 86 || matchCount >= 2) return end;
+    if (final || candidate.length >= 12) return end;
   }
 
   return -1;
@@ -724,16 +637,6 @@ function isLowQualityVoice(voice: SpeechSynthesisVoice) {
     name.includes('cellos') ||
     name.includes('zarvox')
   );
-}
-
-async function getTtsErrorMessage(response: Response) {
-  const fallback = response.headers.get('X-FutureMe-TTS-Error') ?? `Voice synthesis failed with status ${response.status}`;
-  try {
-    const body = (await response.json()) as { kokoro?: string; openai?: string; error?: string };
-    return body.kokoro ?? body.openai ?? body.error ?? fallback;
-  } catch {
-    return fallback;
-  }
 }
 
 function getHabitChangeToast(before: HealthInputs | null, after: HealthInputs | null) {
