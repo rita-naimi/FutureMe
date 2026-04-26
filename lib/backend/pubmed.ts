@@ -137,7 +137,7 @@ function isSummaryItem(item: ESummaryItem | string[] | undefined): item is ESumm
 async function fetchJson<T>(url: string) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'FutureMe/0.1'
+      'User-Agent': 'Meror/0.1'
     }
   });
 
@@ -151,7 +151,7 @@ async function fetchJson<T>(url: string) {
 async function fetchText(url: string) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'FutureMe/0.1'
+      'User-Agent': 'Meror/0.1'
     }
   });
 

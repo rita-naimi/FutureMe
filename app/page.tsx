@@ -23,7 +23,7 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute left-1/2 top-[40%] z-0 hidden h-[700px] w-[700px] -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle,rgba(0,201,167,0.07)_0%,transparent_70%)] dark:block" />
 
       <div className="absolute left-6 top-6 z-20 font-mono text-sm text-slate-400 dark:text-slate-600">
-        FutureMe
+        Meror
       </div>
 
       <section className="relative z-10 mx-auto flex min-h-screen max-w-3xl flex-col items-center">

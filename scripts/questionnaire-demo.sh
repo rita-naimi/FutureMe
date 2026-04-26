@@ -122,11 +122,11 @@ const payload = {
   enableLocalRagCache: process.env.ENABLE_RAG_CACHE === 'true'
 };
 
-fs.writeFileSync('/tmp/futureme-questionnaire-payload.json', JSON.stringify(payload, null, 2));
+fs.writeFileSync('/tmp/meror-questionnaire-payload.json', JSON.stringify(payload, null, 2));
 "
 
 echo "Payload questionnaire (envoye a l'API):"
-cat /tmp/futureme-questionnaire-payload.json
+cat /tmp/meror-questionnaire-payload.json
 
 echo ""
 echo "=== Requete API en cours ==="
@@ -137,19 +137,19 @@ if [[ "$http_code" == "000" ]]; then
   echo "Impossible de joindre localhost."
   echo "Cause probable: serveur Next.js non demarre ou lance dans le mauvais dossier."
   echo "Commande correcte:"
-  echo "  npm --prefix /Users/tahrihassani/Documents/hackathon/FutureMe run dev"
+  echo "  npm --prefix /Users/tahrihassani/Documents/hackathon/Meror run dev"
   exit 7
 fi
 
-response="$(curl -sS -X POST "$API_URL" -H 'Content-Type: application/json' --data-binary @/tmp/futureme-questionnaire-payload.json)"
+response="$(curl -sS -X POST "$API_URL" -H 'Content-Type: application/json' --data-binary @/tmp/meror-questionnaire-payload.json)"
 
-echo "$response" > /tmp/futureme-questionnaire-response.json
+echo "$response" > /tmp/meror-questionnaire-response.json
 
 echo ""
 echo "=== Reaction de la LLM ==="
 node -e "
 const fs = require('fs');
-const data = JSON.parse(fs.readFileSync('/tmp/futureme-questionnaire-response.json', 'utf8'));
+const data = JSON.parse(fs.readFileSync('/tmp/meror-questionnaire-response.json', 'utf8'));
 if (!data.llm) {
   console.log('Aucune sortie LLM (champ llm absent).');
   process.exit(0);
@@ -164,7 +164,7 @@ echo ""
 echo "=== Indices de score ==="
 node -e "
 const fs = require('fs');
-const data = JSON.parse(fs.readFileSync('/tmp/futureme-questionnaire-response.json', 'utf8'));
+const data = JSON.parse(fs.readFileSync('/tmp/meror-questionnaire-response.json', 'utf8'));
 const r = data.riskEvidence || {};
 console.log('Framingham 10y:', r.framingham10YearRiskPercent);
 console.log('ASCVD proxy 10y:', r.ascvdProxy10YearRiskPercent);

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate web-ready Anny body meshes for FutureMe.
+"""Generate web-ready Anny body meshes for Meror.
 
 The app loads these static GLB variants at runtime and picks the closest match
 for the user's sex, biological age, body mass, and musculature.

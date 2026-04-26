@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  TEST PERSONNEL — FutureMe Backend
+ *  TEST PERSONNEL — Meror Backend
  *  Remplis tes données ci-dessous, puis lance :
  *    npm run test -- tests/test-perso.test.ts
  * ============================================================
@@ -69,7 +69,7 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
 
   console.log('\n');
   console.log('╔══════════════════════════════════════════════════════════════╗');
-  console.log(`║         FUTUREME — PROFIL DE ${inputs.name.toUpperCase().padEnd(35)}║`);
+  console.log(`║         MEROR — PROFIL DE ${inputs.name.toUpperCase().padEnd(35)}║`);
   console.log('╚══════════════════════════════════════════════════════════════╝');
   console.log(`  Généré le : ${new Date(generatedAt).toLocaleString('fr-FR')}`);
   console.log();
@@ -162,7 +162,7 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('Test personnel FutureMe', () => {
+describe('Test personnel Meror', () => {
   it('lance le pipeline complet avec mes données et affiche les résultats', async () => {
     console.log('\n⏳ Lancement du pipeline...');
 

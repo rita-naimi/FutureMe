@@ -73,7 +73,7 @@ function mockPubMedAndAnthropic() {
 describe('POST /api/pipeline', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
-    process.env.PUBMED_CACHE_FILE = '/tmp/futureme-pubmed-test-cache.json';
+    process.env.PUBMED_CACHE_FILE = '/tmp/meror-pubmed-test-cache.json';
     resetPubMedCacheForTests();
     process.env.ANTHROPIC_API_KEY = 'test-key';
     delete process.env.ANTHROPIC_MODEL;

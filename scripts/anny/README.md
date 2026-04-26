@@ -1,4 +1,4 @@
-# FutureMe Anny Mesh Pipeline
+# Meror Anny Mesh Pipeline
 
 The app-facing digital twin uses live Three.js geometry today so simulation sliders can update instantly in the browser.
 This folder is the handoff point for higher-fidelity Anny meshes from `naver/anny`.
@@ -7,7 +7,7 @@ Intended pipeline:
 
 1. Install Anny in a separate Python environment.
 2. Generate two template meshes: `female.glb` and `male.glb`.
-3. Generate or morph variants from FutureMe parameters:
+3. Generate or morph variants from Meror parameters:
    - sex: female or male template
    - biological age: age blend / posture / skin-detail variant
    - BMI: body-mass scale

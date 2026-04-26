@@ -20,7 +20,7 @@ export interface DailyGoal {
   checkIns: CheckIn[];
 }
 
-export interface FutureMeAccount {
+export interface MerorAccount {
   email: string;
   password: string;
   name: string;
@@ -31,7 +31,7 @@ export interface FutureMeAccount {
   updatedAt: string;
 }
 
-interface FutureMeStore {
+interface MerorStore {
   profile: TwinProfile | null;
   simulatedInputs: HealthInputs | null;
   chatHistory: ChatMessage[];
@@ -39,7 +39,7 @@ interface FutureMeStore {
   currentUserEmail: string | null;
   profilePhotoDataUrl: string | null;
   dailyGoal: DailyGoal | null;
-  accounts: Record<string, FutureMeAccount>;
+  accounts: Record<string, MerorAccount>;
   setProfile: (profile: TwinProfile) => void;
   setSimulatedInputs: (inputs: HealthInputs) => void;
   setPipelineAnalysis: (analysis: PipelineResponse | null) => void;
@@ -127,7 +127,7 @@ function computeBestStreak(goal: DailyGoal | null) {
   return best;
 }
 
-export const useFutureMeStore = create<FutureMeStore>()(
+export const useMerorStore = create<MerorStore>()(
   persist(
     (set, get) => ({
       profile: null,
@@ -202,7 +202,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
           return { ok: false, error: 'An account already exists for this email.' };
         }
 
-        const account: FutureMeAccount = {
+        const account: MerorAccount = {
           email: normalizedEmail,
           password,
           name: profile.inputs.name,
@@ -401,7 +401,7 @@ export const useFutureMeStore = create<FutureMeStore>()(
         })
     }),
     {
-      name: 'futureme-store',
+      name: 'meror-store',
       partialize: (state) => ({
         profile: state.profile,
         simulatedInputs: state.simulatedInputs,

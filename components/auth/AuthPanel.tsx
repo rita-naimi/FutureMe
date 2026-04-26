@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Lock, LogIn, Mail } from 'lucide-react';
 import type { PipelineResponse } from '@/lib/backend/types';
 import type { TwinProfile } from '@/lib/fhir';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 interface Props {
   mode: 'create' | 'login';
@@ -16,8 +16,8 @@ interface Props {
 }
 
 export function AuthPanel({ mode, profile, pipelineAnalysis = null, profilePhotoDataUrl = null, onSuccess }: Props) {
-  const registerAccount = useFutureMeStore((state) => state.registerAccount);
-  const loginAccount = useFutureMeStore((state) => state.loginAccount);
+  const registerAccount = useMerorStore((state) => state.registerAccount);
+  const loginAccount = useMerorStore((state) => state.loginAccount);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);

@@ -4,7 +4,7 @@ import { BottomNav } from '@/components/BottomNav';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export const metadata: Metadata = {
-  title: 'FutureMe',
+  title: 'Meror',
   description: 'Talk to the person your habits are building.'
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
   (function() {
-    const theme = localStorage.getItem('futureme-theme');
+    const theme = localStorage.getItem('meror-theme');
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {

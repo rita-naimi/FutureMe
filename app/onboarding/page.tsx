@@ -17,7 +17,7 @@ import { runPipelineFromClient } from '@/lib/backend/client';
 import type { ClinicalMarkers, PipelineResponse } from '@/lib/backend/types';
 import type { TwinProfile } from '@/lib/fhir';
 import { createTwinProfile } from '@/lib/profile';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 const schema = z.object({
   name: z.string().min(1, 'Your twin needs a name.'),
@@ -120,7 +120,7 @@ function deriveMissingFields(payload: AppleHealthImportPayload): Array<keyof Onb
 export default function OnboardingPage() {
   const useBackendPipeline = process.env.NEXT_PUBLIC_USE_PIPELINE_API === '1';
   const router = useRouter();
-  const profile = useFutureMeStore((state) => state.profile);
+  const profile = useMerorStore((state) => state.profile);
   const [mode, setMode] = useState<'choose' | 'import-success' | 'questionnaire'>('choose');
   const [xmlUploading, setXmlUploading] = useState(false);
   const [xmlImportPayload, setXmlImportPayload] = useState<AppleHealthImportPayload | null>(null);
@@ -129,7 +129,7 @@ export default function OnboardingPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [pendingProfile, setPendingProfile] = useState<TwinProfile | null>(null);
   const [pendingAnalysis, setPendingAnalysis] = useState<PipelineResponse | null>(null);
-  const [profilePhotoDataUrl, setProfilePhotoDataUrl] = useState<string | null>(useFutureMeStore.getState().profilePhotoDataUrl ?? null);
+  const [profilePhotoDataUrl, setProfilePhotoDataUrl] = useState<string | null>(useMerorStore.getState().profilePhotoDataUrl ?? null);
   const [appleHealthMissingFields, setAppleHealthMissingFields] = useState<Array<keyof OnboardingValues> | null>(null);
   const [uploadedClinicalMarkers, setUploadedClinicalMarkers] = useState<ClinicalMarkers | undefined>(undefined);
 

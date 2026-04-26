@@ -37,16 +37,16 @@ export async function POST(req: NextRequest) {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         Connection: 'keep-alive',
-        'X-FutureMe-LLM-Provider': 'anthropic',
-        'X-FutureMe-LLM-Model': model
+        'X-Meror-LLM-Provider': 'anthropic',
+        'X-Meror-LLM-Model': model
       }
     });
   } catch (error) {
     const reason = getReadableError(error);
     return streamText(buildFallbackResponse(messages, systemPrompt, reason, model), {
-      'X-FutureMe-LLM-Provider': 'fallback',
-      'X-FutureMe-LLM-Model': model,
-      'X-FutureMe-LLM-Error': sanitizeHeaderValue(reason)
+      'X-Meror-LLM-Provider': 'fallback',
+      'X-Meror-LLM-Model': model,
+      'X-Meror-LLM-Error': sanitizeHeaderValue(reason)
     });
   }
 }

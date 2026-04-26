@@ -15,7 +15,7 @@ export function ThemeToggle() {
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     document.documentElement.classList.toggle('dark', nextTheme === 'dark');
-    localStorage.setItem('futureme-theme', nextTheme);
+    localStorage.setItem('meror-theme', nextTheme);
     setTheme(nextTheme);
   };
 

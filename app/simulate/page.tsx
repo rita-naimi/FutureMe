@@ -13,7 +13,7 @@ import type { HealthInputs, RiskScores } from '@/lib/fhir';
 import { computeBiologicalAge, computeRisks } from '@/lib/risks';
 import { createTwinProfile } from '@/lib/profile';
 import { buildSimulationPrompt, buildSystemPrompt } from '@/lib/twin-prompt';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 import { runPipelineFromClient } from '@/lib/backend/client';
 import { buildCompletedMedicalProfile } from '@/lib/riskCalculator';
 import {
@@ -97,12 +97,12 @@ const SCENARIO_CARDS: Array<{
 ];
 
 export default function SimulatePage() {
-  const profile = useFutureMeStore((state) => state.profile);
-  const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
-  const setSimulatedInputs = useFutureMeStore((state) => state.setSimulatedInputs);
-  const pipelineAnalysis = useFutureMeStore((state) => state.pipelineAnalysis);
-  const setPipelineAnalysis = useFutureMeStore((state) => state.setPipelineAnalysis);
-  const currentUserEmail = useFutureMeStore((state) => state.currentUserEmail);
+  const profile = useMerorStore((state) => state.profile);
+  const simulatedInputs = useMerorStore((state) => state.simulatedInputs);
+  const setSimulatedInputs = useMerorStore((state) => state.setSimulatedInputs);
+  const pipelineAnalysis = useMerorStore((state) => state.pipelineAnalysis);
+  const setPipelineAnalysis = useMerorStore((state) => state.setPipelineAnalysis);
+  const currentUserEmail = useMerorStore((state) => state.currentUserEmail);
   const [reaction, setReaction] = useState('Adjust a habit and I will tell you what changed from my side of time.');
   const [reactionLoading, setReactionLoading] = useState(false);
   const [timeCapsuleOpen, setTimeCapsuleOpen] = useState(false);
@@ -344,7 +344,7 @@ export default function SimulatePage() {
                       simulatedBioAge={simulatedFuture.biologicalAge}
                       projectionYears={projectionYears}
                     />
-                    <FutureMessageLauncher onOpen={() => setTimeCapsuleOpen(true)} />
+                    <MerorssageLauncher onOpen={() => setTimeCapsuleOpen(true)} />
                   </div>
                 </div>
 
@@ -454,7 +454,7 @@ function HorizonControl({
   );
 }
 
-function FutureMessageLauncher({ onOpen }: { onOpen: () => void }) {
+function MerorssageLauncher({ onOpen }: { onOpen: () => void }) {
   return (
     <button
       type="button"

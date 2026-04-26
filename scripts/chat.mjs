@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * ============================================================
- *  CHAT LIVE avec Claude Sonnet 4 — FutureMe
+ *  CHAT LIVE avec Claude Sonnet 4 — Meror
  *
  *  Usage :
  *    1. Démarre le serveur Next.js dans un autre terminal :

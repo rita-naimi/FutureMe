@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const safeMessage = escapeHtml(message.trim()).replace(/\n/g, '<br />');
     const safeName = healthSnapshot?.name ? escapeHtml(healthSnapshot.name) : '';
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const from = process.env.RESEND_FROM_EMAIL || 'FutureMe <onboarding@resend.dev>';
+    const from = process.env.RESEND_FROM_EMAIL || 'Meror <onboarding@resend.dev>';
 
     const emailPayload: Record<string, unknown> = {
       from,
@@ -127,7 +127,7 @@ function buildEmailHtml({
       <div style="display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:rgba(0,163,137,0.15);border:1px solid rgba(0,163,137,0.3);margin-bottom:16px;">
         <span style="font-size:24px;">&infin;</span>
       </div>
-      <p style="color:#00a389;font-size:12px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;margin:0;">FutureMe</p>
+      <p style="color:#00a389;font-size:12px;font-weight:600;letter-spacing:0.2em;text-transform:uppercase;margin:0;">Meror</p>
       <h1 style="color:#ffffff;font-size:28px;font-weight:700;margin:12px 0 0;line-height:1.3;">
         A message from your past self
       </h1>
@@ -160,7 +160,7 @@ function buildEmailHtml({
 
     <div style="text-align:center;margin-bottom:32px;">
       <p style="color:#64748b;font-size:14px;line-height:1.6;margin:0 0 20px;">
-        How does your life compare to what you imagined?<br>Check your current health snapshot on FutureMe.
+        How does your life compare to what you imagined?<br>Check your current health snapshot on Meror.
       </p>
       <a href="${appUrl}/dashboard"
          style="display:inline-block;background:#00a389;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:100px;font-weight:600;font-size:15px;">
@@ -169,7 +169,7 @@ function buildEmailHtml({
     </div>
 
     <p style="color:#334155;font-size:12px;text-align:center;margin:0;">
-      ${deliverNow ? 'Sent immediately' : `Scheduled for ${formattedDate}`} with care by FutureMe
+      ${deliverNow ? 'Sent immediately' : `Scheduled for ${formattedDate}`} with care by Meror
     </p>
   </div>
 </body>

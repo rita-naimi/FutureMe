@@ -8,7 +8,7 @@ import { LogOut, Pencil, Save, Sparkles, UserRound } from 'lucide-react';
 import { PageTransition } from '@/components/PageTransition';
 import type { HealthInputs } from '@/lib/fhir';
 import { createTwinProfile } from '@/lib/profile';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 const FIELD_CLASS =
   'w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none transition focus:border-twin/50';
@@ -17,13 +17,13 @@ const RANGE_CLASS = 'w-full accent-twin';
 
 export default function ProfilePage() {
   const router = useRouter();
-  const profile = useFutureMeStore((state) => state.profile);
-  const currentUserEmail = useFutureMeStore((state) => state.currentUserEmail);
-  const profilePhotoDataUrl = useFutureMeStore((state) => state.profilePhotoDataUrl);
-  const setProfile = useFutureMeStore((state) => state.setProfile);
-  const setPipelineAnalysis = useFutureMeStore((state) => state.setPipelineAnalysis);
-  const setProfilePhoto = useFutureMeStore((state) => state.setProfilePhoto);
-  const logout = useFutureMeStore((state) => state.logout);
+  const profile = useMerorStore((state) => state.profile);
+  const currentUserEmail = useMerorStore((state) => state.currentUserEmail);
+  const profilePhotoDataUrl = useMerorStore((state) => state.profilePhotoDataUrl);
+  const setProfile = useMerorStore((state) => state.setProfile);
+  const setPipelineAnalysis = useMerorStore((state) => state.setPipelineAnalysis);
+  const setProfilePhoto = useMerorStore((state) => state.setProfilePhoto);
+  const logout = useMerorStore((state) => state.logout);
   const [draft, setDraft] = useState<HealthInputs | null>(profile?.inputs ?? null);
   const [saved, setSaved] = useState(false);
 

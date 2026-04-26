@@ -13,7 +13,7 @@ export function ShareCard({ profile }: { profile: TwinProfile }) {
     const png = await toPng(cardRef.current, { quality: 1, pixelRatio: 2 });
     const link = document.createElement('a');
     link.href = png;
-    link.download = 'my-futureme-health-card.png';
+    link.download = 'my-meror-health-card.png';
     link.click();
   };
 
@@ -29,7 +29,7 @@ export function ShareCard({ profile }: { profile: TwinProfile }) {
             FM
           </div>
           <div>
-            <p className="font-semibold text-white">FutureMe</p>
+            <p className="font-semibold text-white">Meror</p>
             <p className="text-xs text-twin">Health snapshot · {new Date().toLocaleDateString()}</p>
           </div>
         </div>

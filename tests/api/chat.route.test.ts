@@ -89,8 +89,8 @@ describe('POST /api/chat', () => {
       })
     );
 
-    expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('anthropic');
-    expect(response.headers.get('X-FutureMe-LLM-Model')).toBe('test-sonnet-model');
+    expect(response.headers.get('X-Meror-LLM-Provider')).toBe('anthropic');
+    expect(response.headers.get('X-Meror-LLM-Model')).toBe('test-sonnet-model');
     await expect(readClientSseText(response)).resolves.toBe('Bonjour, Tahri ');
   });
 
@@ -104,7 +104,7 @@ describe('POST /api/chat', () => {
 
     const text = await readClientSseText(response);
 
-    expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('fallback');
+    expect(response.headers.get('X-Meror-LLM-Provider')).toBe('fallback');
     expect(text).toContain('Fallback mode');
     expect(text).toContain('Anthropic');
     expect(text).toContain('25');

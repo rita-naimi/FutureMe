@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
     {
       status: 503,
       headers: {
-        'X-FutureMe-TTS-Provider': 'kokoro-openai',
-        'X-FutureMe-TTS-Error': sanitizeHeaderValue(kokoroResponse.reason || openAiResponse.reason || 'TTS unavailable')
+        'X-Meror-TTS-Provider': 'kokoro-openai',
+        'X-Meror-TTS-Error': sanitizeHeaderValue(kokoroResponse.reason || openAiResponse.reason || 'TTS unavailable')
       }
     }
   );
@@ -62,7 +62,7 @@ async function generateKokoroSpeech(input: string): Promise<TtsResult> {
   const langCode = process.env.KOKORO_LANG_CODE?.trim() || DEFAULT_KOKORO_LANG_CODE;
   const speed = readNumberEnv('KOKORO_SPEED', DEFAULT_KOKORO_SPEED);
   const timeoutMs = readNumberEnv('KOKORO_TTS_TIMEOUT_MS', DEFAULT_KOKORO_TIMEOUT_MS);
-  const outputPath = path.join(tmpdir(), `futureme-kokoro-${randomUUID()}.wav`);
+  const outputPath = path.join(tmpdir(), `meror-kokoro-${randomUUID()}.wav`);
 
   try {
     const result = await runKokoroProcess({
@@ -88,9 +88,9 @@ async function generateKokoroSpeech(input: string): Promise<TtsResult> {
         headers: {
           'Content-Type': 'audio/wav',
           'Cache-Control': 'no-store',
-          'X-FutureMe-TTS-Provider': 'kokoro',
-          'X-FutureMe-TTS-Model': 'Kokoro-82M',
-          'X-FutureMe-TTS-Voice': voice
+          'X-Meror-TTS-Provider': 'kokoro',
+          'X-Meror-TTS-Model': 'Kokoro-82M',
+          'X-Meror-TTS-Voice': voice
         }
       })
     };
@@ -206,9 +206,9 @@ async function generateOpenAiSpeech(input: string): Promise<TtsResult> {
       headers: {
         'Content-Type': response.headers.get('content-type') ?? 'audio/mpeg',
         'Cache-Control': 'no-store',
-        'X-FutureMe-TTS-Provider': 'openai',
-        'X-FutureMe-TTS-Model': model,
-        'X-FutureMe-TTS-Voice': typeof voice === 'string' ? voice : DEFAULT_TTS_VOICE
+        'X-Meror-TTS-Provider': 'openai',
+        'X-Meror-TTS-Model': model,
+        'X-Meror-TTS-Voice': typeof voice === 'string' ? voice : DEFAULT_TTS_VOICE
       }
     })
   };

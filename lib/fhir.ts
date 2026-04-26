@@ -52,7 +52,7 @@ export function buildFHIRBundle(inputs: HealthInputs): Bundle {
 
   const patient: Patient = {
     resourceType: 'Patient',
-    id: 'futureme-patient',
+    id: 'meror-patient',
     name: [{ text: inputs.name }],
     gender: inputs.sex,
     birthDate: new Date(new Date().getFullYear() - inputs.age, 0, 1)

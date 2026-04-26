@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ScanLine } from 'lucide-react';
 import { TwinAvatar } from '@/components/twin/TwinAvatar';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 export default function AwakeningPage() {
   const router = useRouter();
-  const profile = useFutureMeStore((state) => state.profile);
+  const profile = useMerorStore((state) => state.profile);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {

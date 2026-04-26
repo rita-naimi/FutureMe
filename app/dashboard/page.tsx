@@ -20,7 +20,7 @@ import type { HealthInputs, RiskScores } from '@/lib/fhir';
 
 const TwinAvatarViewer = dynamic(() => import('@/components/twin/TwinAvatarViewer'), { ssr: false });
 import { computeBiologicalAge, computeRisks, healthScoreFromRisks } from '@/lib/risks';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 type Priority = {
   score: number;
@@ -33,8 +33,8 @@ const CARD =
   'rounded-[1.65rem] border border-black/10 bg-white/80 shadow-[0_20px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl dark:border-white/10 dark:bg-navy-900/80 dark:shadow-black/20';
 
 export default function DashboardPage() {
-  const profile = useFutureMeStore((state) => state.profile);
-  const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
+  const profile = useMerorStore((state) => state.profile);
+  const simulatedInputs = useMerorStore((state) => state.simulatedInputs);
 
   const dashboard = useMemo(() => {
     if (!profile) return null;
@@ -70,7 +70,7 @@ export default function DashboardPage() {
           </div>
           <h1 className="font-display text-3xl font-bold text-slate-950 dark:text-white">Create a profile first</h1>
           <p className="mt-3 text-slate-500 dark:text-slate-400">
-            FutureMe needs your questionnaire profile before it can show your post-login experience.
+            Meror needs your questionnaire profile before it can show your post-login experience.
           </p>
           <Link
             href="/onboarding"

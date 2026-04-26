@@ -16,7 +16,7 @@ describe('parse-apple-health script', () => {
       return;
     }
 
-    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'futureme-apple-health-'));
+    const outputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'meror-apple-health-'));
     const outputPath = path.join(outputDir, 'summary.json');
 
     execFileSync(

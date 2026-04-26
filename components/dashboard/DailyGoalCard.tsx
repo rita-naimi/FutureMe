@@ -17,7 +17,7 @@ import {
   X
 } from 'lucide-react';
 import type { DailyGoal } from '@/lib/store';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 type SheetMode = 'goal' | 'checkin' | null;
 
@@ -45,12 +45,12 @@ interface DailyGoalCardProps {
 }
 
 export function DailyGoalCard({ recommendedHabitKey, className = '' }: DailyGoalCardProps) {
-  const dailyGoal = useFutureMeStore((state) => state.dailyGoal);
-  const setDailyGoal = useFutureMeStore((state) => state.setDailyGoal);
-  const logCheckIn = useFutureMeStore((state) => state.logCheckIn);
-  const getCurrentStreak = useFutureMeStore((state) => state.getCurrentStreak);
-  const getBestStreak = useFutureMeStore((state) => state.getBestStreak);
-  const hasCheckedInToday = useFutureMeStore((state) => state.hasCheckedInToday);
+  const dailyGoal = useMerorStore((state) => state.dailyGoal);
+  const setDailyGoal = useMerorStore((state) => state.setDailyGoal);
+  const logCheckIn = useMerorStore((state) => state.logCheckIn);
+  const getCurrentStreak = useMerorStore((state) => state.getCurrentStreak);
+  const getBestStreak = useMerorStore((state) => state.getBestStreak);
+  const hasCheckedInToday = useMerorStore((state) => state.hasCheckedInToday);
   const [sheetMode, setSheetMode] = useState<SheetMode>(null);
   const [selectedHabitKey, setSelectedHabitKey] = useState(dailyGoal?.habitKey ?? recommendedHabitKey ?? 'sleep');
   const [sheetMessage, setSheetMessage] = useState<string | null>(null);
@@ -112,7 +112,7 @@ export function DailyGoalCard({ recommendedHabitKey, className = '' }: DailyGoal
 
   const handleCheckIn = (completed: boolean) => {
     logCheckIn(completed);
-    const nextStreak = useFutureMeStore.getState().getCurrentStreak();
+    const nextStreak = useMerorStore.getState().getCurrentStreak();
     const milestoneMessage = completed ? MILESTONE_MESSAGES[nextStreak] : null;
     if (completed) setStreakPulse(true);
     setSheetMessage(completed ? `${nextStreak} days. I remember when that felt impossible.` : 'Tomorrow is still there.');

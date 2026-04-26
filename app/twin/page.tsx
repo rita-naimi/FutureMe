@@ -16,16 +16,16 @@ import { sanitizeAssistantText } from '@/lib/chatTextSanitizer';
 import { getRedFlags } from '@/lib/red-flags';
 import { createTwinProfile } from '@/lib/profile';
 import { buildSystemPrompt } from '@/lib/twin-prompt';
-import { useFutureMeStore } from '@/lib/store';
+import { useMerorStore } from '@/lib/store';
 
 export default function TwinPage() {
-  const profile = useFutureMeStore((state) => state.profile);
-  const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
-  const chatHistory = useFutureMeStore((state) => state.chatHistory);
-  const pipelineAnalysis = useFutureMeStore((state) => state.pipelineAnalysis);
-  const addMessage = useFutureMeStore((state) => state.addMessage);
-  const replaceLastAssistantMessage = useFutureMeStore((state) => state.replaceLastAssistantMessage);
-  const extractHabitChange = useFutureMeStore((state) => state.extractHabitChange);
+  const profile = useMerorStore((state) => state.profile);
+  const simulatedInputs = useMerorStore((state) => state.simulatedInputs);
+  const chatHistory = useMerorStore((state) => state.chatHistory);
+  const pipelineAnalysis = useMerorStore((state) => state.pipelineAnalysis);
+  const addMessage = useMerorStore((state) => state.addMessage);
+  const replaceLastAssistantMessage = useMerorStore((state) => state.replaceLastAssistantMessage);
+  const extractHabitChange = useMerorStore((state) => state.extractHabitChange);
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(() => chatHistory.some((message) => message.role === 'user'));
@@ -190,11 +190,11 @@ export default function TwinPage() {
       setInput('');
       setHasInteracted(true);
 
-      const outgoing = [...useFutureMeStore.getState().chatHistory, { role: 'user' as const, content: trimmed }];
+      const outgoing = [...useMerorStore.getState().chatHistory, { role: 'user' as const, content: trimmed }];
       addMessage({ role: 'user', content: trimmed, inputMode: source });
-      const beforeInputs = useFutureMeStore.getState().simulatedInputs;
+      const beforeInputs = useMerorStore.getState().simulatedInputs;
       extractHabitChange(trimmed);
-      const afterInputs = useFutureMeStore.getState().simulatedInputs;
+      const afterInputs = useMerorStore.getState().simulatedInputs;
       const habitChange = getHabitChangeToast(beforeInputs, afterInputs);
       if (habitChange) setToast(habitChange);
 
@@ -203,7 +203,7 @@ export default function TwinPage() {
       let fullResponse = '';
 
       try {
-        const store = useFutureMeStore.getState();
+        const store = useMerorStore.getState();
         const dailyGoalContext = store.dailyGoal
           ? {
               goal: store.dailyGoal,

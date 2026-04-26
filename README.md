@@ -1,4 +1,4 @@
-# FutureMe
+# Meror
 ## Talk to the person your habits are building.
 
 ## Backend MVP (user profile + risk + LLM context)
