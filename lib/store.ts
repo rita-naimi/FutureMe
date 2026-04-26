@@ -1,7 +1,6 @@
 'use client';
 
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
 import type { HealthInputs, TwinProfile } from './fhir';
 import type { PipelineResponse } from './backend/types';
 
@@ -127,9 +126,7 @@ function computeBestStreak(goal: DailyGoal | null) {
   return best;
 }
 
-export const useMerorStore = create<MerorStore>()(
-  persist(
-    (set, get) => ({
+export const useMerorStore = create<MerorStore>()((set, get) => ({
       profile: null,
       simulatedInputs: null,
       chatHistory: [],
@@ -397,21 +394,7 @@ export const useMerorStore = create<MerorStore>()(
           pipelineAnalysis: null,
           currentUserEmail: null,
           profilePhotoDataUrl: null,
-          dailyGoal: null
+          dailyGoal: null,
+          accounts: {}
         })
-    }),
-    {
-      name: 'meror-store',
-      partialize: (state) => ({
-        profile: state.profile,
-        simulatedInputs: state.simulatedInputs,
-        chatHistory: state.chatHistory,
-        pipelineAnalysis: state.pipelineAnalysis,
-        currentUserEmail: state.currentUserEmail,
-        profilePhotoDataUrl: state.profilePhotoDataUrl,
-        dailyGoal: state.dailyGoal,
-        accounts: state.accounts
-      })
-    }
-  )
-);
+}));
