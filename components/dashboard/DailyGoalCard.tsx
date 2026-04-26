@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Brain,
   Check,
-  Droplets,
   Dumbbell,
   Flame,
   Moon,
@@ -28,7 +27,7 @@ const GOAL_OPTIONS = [
   { habitKey: 'diet', habit: 'Eat well', Icon: Salad },
   { habitKey: 'stress', habit: 'Reduce stress', Icon: Brain },
   { habitKey: 'alcohol', habit: 'Cut back on alcohol', Icon: Wine },
-  { habitKey: 'water', habit: 'Drink more water', Icon: Droplets }
+  { habitKey: 'smoking', habit: 'Quit smoking', Icon: Flame }
 ] as const;
 
 const MILESTONES = [7, 14, 30, 60, 90];

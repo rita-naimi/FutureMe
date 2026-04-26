@@ -8,6 +8,7 @@ import { AnimatePresence, animate, motion } from 'framer-motion';
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { PageTransition } from '@/components/PageTransition';
 import TimeCapsule from '@/components/TimeCapsule';
+import { AIHealthDisclaimer } from '@/components/AIHealthDisclaimer';
 import type { HealthInputs, RiskScores } from '@/lib/fhir';
 import { computeBiologicalAge, computeRisks } from '@/lib/risks';
 import { createTwinProfile } from '@/lib/profile';
@@ -1456,6 +1457,7 @@ function TwinReactionCard({ loading, reaction }: { loading: boolean; reaction: s
             <>
               <p className="text-base italic leading-relaxed text-slate-600 dark:text-slate-300">&quot;{reaction}&quot;</p>
               <p className="mt-3 text-right text-sm font-medium text-slate-400 dark:text-slate-500">— Your future self</p>
+              <AIHealthDisclaimer className="mt-4" />
             </>
           )}
         </div>

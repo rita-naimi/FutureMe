@@ -439,7 +439,8 @@ function getRecommendedHabitKey(priorityTitle: string) {
   if (normalized.includes('stress')) return 'stress';
   if (normalized.includes('alcohol')) return 'alcohol';
   if (normalized.includes('food')) return 'diet';
-  if (normalized.includes('movement') || normalized.includes('cardio') || normalized.includes('smoking')) return 'exercise';
+  if (normalized.includes('smoking')) return 'smoking';
+  if (normalized.includes('movement') || normalized.includes('cardio')) return 'exercise';
   return 'sleep';
 }
 

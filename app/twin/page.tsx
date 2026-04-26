@@ -9,6 +9,7 @@ import { PageTransition } from '@/components/PageTransition';
 import { SuggestedQuestions } from '@/components/twin/SuggestedQuestions';
 import { TwinAvatar } from '@/components/twin/TwinAvatar';
 import { VoiceInput } from '@/components/twin/VoiceInput';
+import { AIHealthDisclaimer } from '@/components/AIHealthDisclaimer';
 import type { OrbState } from '@/components/AIOrb';
 import type { HealthInputs } from '@/lib/fhir';
 import { getRedFlags } from '@/lib/red-flags';
@@ -423,46 +424,49 @@ export default function TwinPage() {
         </motion.div>
 
         <footer className="fixed inset-x-0 bottom-[4.75rem] z-30 border-t border-black/10 bg-ivory/88 p-4 backdrop-blur-xl dark:border-white/10 dark:bg-navy-950/92">
-          <div className="mx-auto flex max-w-3xl items-end gap-3">
-            <div className="h-14 w-14 flex-shrink-0" aria-hidden="true" />
-            <div className="min-h-11 flex-1 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 shadow-[0_10px_36px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
-              <textarea
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
-                    event.preventDefault();
-                    void sendMessage(input);
-                  }
-                }}
-                placeholder="Ask your future self anything..."
-                className="max-h-32 w-full resize-none bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-600"
-                rows={1}
-              />
+          <div className="mx-auto max-w-3xl">
+            <div className="flex items-end gap-3">
+              <div className="h-14 w-14 flex-shrink-0" aria-hidden="true" />
+              <div className="min-h-11 flex-1 rounded-2xl border border-black/10 bg-white/80 px-4 py-3 shadow-[0_10px_36px_rgba(15,23,42,0.06)] dark:border-white/10 dark:bg-white/[0.04] dark:shadow-none">
+                <textarea
+                  value={input}
+                  onChange={(event) => setInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.shiftKey) {
+                      event.preventDefault();
+                      void sendMessage(input);
+                    }
+                  }}
+                  placeholder="Ask your future self anything..."
+                  className="max-h-32 w-full resize-none bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-600"
+                  rows={1}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={toggleVoiceReplies}
+                className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border transition ${
+                  voiceRepliesEnabled
+                    ? 'border-twin/40 bg-twin/15 text-twin'
+                    : 'border-black/10 bg-white/80 text-slate-500 hover:border-twin/35 hover:text-twin dark:border-white/15 dark:bg-white/[0.03] dark:text-slate-400'
+                }`}
+                aria-label={voiceRepliesEnabled ? 'Turn off spoken replies' : 'Turn on spoken replies'}
+                title={voiceRepliesEnabled ? (isSpeaking ? 'Speaking' : 'Voice replies on') : 'Voice replies off'}
+              >
+                {voiceRepliesEnabled ? <Volume2 className={`h-5 w-5 ${isSpeaking ? 'animate-pulse' : ''}`} /> : <VolumeX className="h-5 w-5" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => void sendMessage(input)}
+                disabled={!input.trim() || isStreaming}
+                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-twin text-navy-950 transition disabled:opacity-30"
+                aria-label="Send message"
+                title="Send"
+              >
+                <Send className="h-5 w-5" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={toggleVoiceReplies}
-              className={`flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full border transition ${
-                voiceRepliesEnabled
-                  ? 'border-twin/40 bg-twin/15 text-twin'
-                  : 'border-black/10 bg-white/80 text-slate-500 hover:border-twin/35 hover:text-twin dark:border-white/15 dark:bg-white/[0.03] dark:text-slate-400'
-              }`}
-              aria-label={voiceRepliesEnabled ? 'Turn off spoken replies' : 'Turn on spoken replies'}
-              title={voiceRepliesEnabled ? (isSpeaking ? 'Speaking' : 'Voice replies on') : 'Voice replies off'}
-            >
-              {voiceRepliesEnabled ? <Volume2 className={`h-5 w-5 ${isSpeaking ? 'animate-pulse' : ''}`} /> : <VolumeX className="h-5 w-5" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => void sendMessage(input)}
-              disabled={!input.trim() || isStreaming}
-              className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-twin text-navy-950 transition disabled:opacity-30"
-              aria-label="Send message"
-              title="Send"
-            >
-              <Send className="h-5 w-5" />
-            </button>
+            <AIHealthDisclaimer className="mt-2 pl-[4.25rem] pr-[6.75rem] text-center" />
           </div>
         </footer>
       </PageTransition>
