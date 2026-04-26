@@ -11,7 +11,7 @@ import { createTwinProfile } from '@/lib/profile';
 import { useFutureMeStore } from '@/lib/store';
 
 const FIELD_CLASS =
-  'mt-2 w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none transition focus:border-twin/50';
+  'w-full rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-white outline-none transition focus:border-twin/50';
 
 const RANGE_CLASS = 'w-full accent-twin';
 
@@ -252,9 +252,13 @@ function Input({
   return (
     <label className="block">
       <span className="text-sm text-slate-400">{label}</span>
-      <div className="relative">
+      <div className="mt-2 flex items-stretch gap-2">
         <input type={type} value={value} onChange={(event) => onChange(event.target.value)} className={FIELD_CLASS} />
-        {unit ? <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-500">{unit}</span> : null}
+        {unit ? (
+          <span className="flex min-w-14 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.03] px-3 text-sm font-medium text-slate-500">
+            {unit}
+          </span>
+        ) : null}
       </div>
     </label>
   );

@@ -67,10 +67,10 @@ describe('POST /api/chat', () => {
       return new Response(
         [
           'event: content_block_delta',
-          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Bonjour "}}',
+          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Bonjour — "}}',
           '',
           'event: content_block_delta',
-          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"Tahri"}}',
+          'data: {"type":"content_block_delta","index":0,"delta":{"type":"text_delta","text":"**Tahri** ✅"}}',
           '',
           'event: message_stop',
           'data: {"type":"message_stop"}',
@@ -91,7 +91,7 @@ describe('POST /api/chat', () => {
 
     expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('anthropic');
     expect(response.headers.get('X-FutureMe-LLM-Model')).toBe('test-sonnet-model');
-    await expect(readClientSseText(response)).resolves.toBe('Bonjour Tahri');
+    await expect(readClientSseText(response)).resolves.toBe('Bonjour, Tahri ');
   });
 
   it('makes fallback mode explicit and answers simple factual questions', async () => {
@@ -105,9 +105,9 @@ describe('POST /api/chat', () => {
     const text = await readClientSseText(response);
 
     expect(response.headers.get('X-FutureMe-LLM-Provider')).toBe('fallback');
-    expect(text).toContain('Mode degrade');
+    expect(text).toContain('Fallback mode');
     expect(text).toContain('Anthropic');
-    expect(text).toContain('25 ans');
+    expect(text).toContain('25');
     expect(text).toContain('35');
   });
 });

@@ -6,6 +6,7 @@ import {
   getPositiveNumberFromEnv,
   type AnthropicChatMessage
 } from '@/lib/backend/anthropic';
+import { sanitizeAssistantText } from '@/lib/chatTextSanitizer';
 
 type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
@@ -59,6 +60,8 @@ function transformAnthropicStream(source: ReadableStream<Uint8Array>) {
     async start(controller) {
       let buffer = '';
       let doneSent = false;
+      let rawResponse = '';
+      let sentResponse = '';
 
       function sendDone() {
         if (doneSent) return;
@@ -81,14 +84,26 @@ function transformAnthropicStream(source: ReadableStream<Uint8Array>) {
             continue;
           }
           if (text) {
-            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text })}\n\n`));
+            rawResponse += text;
+            const sanitizedResponse = sanitizeAssistantText(rawResponse);
+            const delta = sanitizedResponse.slice(sentResponse.length);
+            sentResponse = sanitizedResponse;
+            if (delta) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: delta })}\n\n`));
+            }
           }
         }
       }
 
       const trailingText = extractTextDelta(buffer);
       if (trailingText && trailingText !== '[DONE]') {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: trailingText })}\n\n`));
+        rawResponse += trailingText;
+        const sanitizedResponse = sanitizeAssistantText(rawResponse);
+        const delta = sanitizedResponse.slice(sentResponse.length);
+        sentResponse = sanitizedResponse;
+        if (delta) {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: delta })}\n\n`));
+        }
       }
 
       sendDone();
@@ -126,7 +141,7 @@ function extractTextDelta(event: string) {
 
 function streamText(text: string, extraHeaders?: Record<string, string>) {
   const encoder = new TextEncoder();
-  const words = text.split(/(\s+)/);
+  const words = sanitizeAssistantText(text).split(/(\s+)/);
 
   const readableStream = new ReadableStream({
     async start(controller) {
@@ -152,7 +167,7 @@ function streamText(text: string, extraHeaders?: Record<string, string>) {
 function buildFallbackResponse(messages: ChatMessage[], systemPrompt: string, reason: string, model: string) {
   const last = messages[messages.length - 1]?.content ?? '';
   const normalizedLast = stripAccents(last);
-  const name = matchValue(systemPrompt, /Name: ([^\n]+)/i) ?? matchValue(systemPrompt, /You are ([^,]+), speaking/i) ?? 'toi';
+  const name = matchValue(systemPrompt, /Name: ([^\n]+)/i) ?? matchValue(systemPrompt, /You are ([^,]+), speaking/i) ?? 'you';
   const presentAge = matchValue(systemPrompt, /Present age: (\d+)/i);
   const futureAge = matchValue(systemPrompt, /Future age: (\d+)/i);
   const sleep = matchValue(systemPrompt, /Sleep: ([^\n]+)/i);
@@ -161,31 +176,31 @@ function buildFallbackResponse(messages: ChatMessage[], systemPrompt: string, re
   const metabolic = matchValue(systemPrompt, /Metabolic risk: (\d+)\/100/i) ?? 'non calcule';
 
   const prefix = [
-    `Mode degrade: Claude Sonnet (${model}) n'a pas pu repondre via Anthropic (${reason}).`,
-    'Verifie que ANTHROPIC_API_KEY est configure cote serveur et que le compte a encore du credit.',
-    'Je reponds avec le fallback local, donc la reponse est volontairement courte et factuelle.'
+    `Fallback mode: Claude Sonnet (${model}) could not respond through Anthropic (${reason}).`,
+    'Check that ANTHROPIC_API_KEY is configured on the server and that the account still has credit.',
+    'I am answering with the local fallback, so this response is intentionally short and factual.'
   ];
 
   if (/age|quel age/i.test(normalizedLast) && (presentAge || futureAge)) {
-    return [...prefix, '', `Tu as ${presentAge ?? 'un age non renseigne'} ans dans le profil actuel, et la simulation me place a ${futureAge ?? 'un age futur non renseigne'} ans.`].join('\n');
+    return [...prefix, '', `Your current profile age is ${presentAge ?? 'not recorded'}, and the future simulation places me at ${futureAge ?? 'not recorded'}.`].join('\n');
   }
 
   if (/sleep|sommeil|dorm|nuit/i.test(normalizedLast)) {
-    return [...prefix, '', `Ton sommeil actuel est note a ${sleep ?? 'une valeur non renseignee'}. C'est un levier important parce qu'il influence la recuperation, le stress, l'alimentation et l'energie pour bouger.`].join('\n');
+    return [...prefix, '', `Your current sleep is recorded as ${sleep ?? 'not recorded'}. It matters because it affects recovery, stress, appetite, and energy for movement.`].join('\n');
   }
 
   if (/sport|exercise|exercice|boug|activit/i.test(normalizedLast)) {
-    return [...prefix, '', `Ton activite actuelle est ${exercise ?? 'non renseignee'}. Dans cette simulation, augmenter progressivement les jours de mouvement est un levier direct sur le risque cardiovasculaire et metabolique.`].join('\n');
+    return [...prefix, '', `Your current activity is ${exercise ?? 'not recorded'}. In this simulation, gradually increasing movement days is a direct lever for cardiovascular and metabolic risk.`].join('\n');
   }
 
   if (/biggest|risk|risque|concern|preoccupation/i.test(normalizedLast)) {
-    return [...prefix, '', `Les signaux principaux du profil sont: risque cardiovasculaire ${cardio}/100 et risque metabolique ${metabolic}/100. La prochaine bonne action est d'agir sur le facteur modifiable le plus fort: sommeil, mouvement, tabac, alcool ou alimentation selon ton profil.`].join('\n');
+    return [...prefix, '', `The main profile signals are cardiovascular risk ${cardio}/100 and metabolic risk ${metabolic}/100. The next useful action is to focus on the strongest modifiable factor in your profile: sleep, movement, smoking, alcohol, or diet.`].join('\n');
   }
 
   return [
     ...prefix,
     '',
-    `Je suis le futur simule de ${name}. Je garde le contexte du profil, mais sans LLM live je ne peux pas faire une vraie conversation nuancee. Pose une question factuelle sur l'age, le sommeil, l'exercice ou les risques, et je repondrai avec les donnees disponibles.`
+    `I am the simulated future self of ${name}. I still have the profile context, but without the live LLM I cannot hold a nuanced conversation. Ask a factual question about age, sleep, exercise, or risk, and I will answer from the available data.`
   ].join('\n');
 }
 

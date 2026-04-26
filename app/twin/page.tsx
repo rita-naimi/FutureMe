@@ -12,6 +12,7 @@ import { VoiceInput } from '@/components/twin/VoiceInput';
 import { AIHealthDisclaimer } from '@/components/AIHealthDisclaimer';
 import type { OrbState } from '@/components/AIOrb';
 import type { HealthInputs } from '@/lib/fhir';
+import { sanitizeAssistantText } from '@/lib/chatTextSanitizer';
 import { getRedFlags } from '@/lib/red-flags';
 import { createTwinProfile } from '@/lib/profile';
 import { buildSystemPrompt } from '@/lib/twin-prompt';
@@ -21,6 +22,7 @@ export default function TwinPage() {
   const profile = useFutureMeStore((state) => state.profile);
   const simulatedInputs = useFutureMeStore((state) => state.simulatedInputs);
   const chatHistory = useFutureMeStore((state) => state.chatHistory);
+  const pipelineAnalysis = useFutureMeStore((state) => state.pipelineAnalysis);
   const addMessage = useFutureMeStore((state) => state.addMessage);
   const replaceLastAssistantMessage = useFutureMeStore((state) => state.replaceLastAssistantMessage);
   const extractHabitChange = useFutureMeStore((state) => state.extractHabitChange);
@@ -209,7 +211,7 @@ export default function TwinPage() {
               bestStreak: store.getBestStreak()
             }
           : undefined;
-        const systemPrompt = buildSystemPrompt(activeProfile, dailyGoalContext);
+        const systemPrompt = buildSystemPrompt(activeProfile, dailyGoalContext, store.pipelineAnalysis ?? pipelineAnalysis);
 
         const response = await fetch('/api/chat', {
           method: 'POST',
@@ -217,7 +219,7 @@ export default function TwinPage() {
           body: JSON.stringify({
             systemPrompt:
               shouldSpeakReply
-                ? `${systemPrompt}\n\nVoice mode: always answer in English, even if the user's transcript contains French. Override the same-language rule for voice messages. Start with one very short complete sentence under eight words, then continue naturally. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, or colon-style labels. Avoid fragments.`
+                ? `${systemPrompt}\n\nVoice mode: always answer in English, even if the user's transcript contains French. Start with one very short complete sentence under eight words, then continue naturally. Use 1 to 3 short, complete sentences. Do not use bullets, headings, numbered lists, emojis, markdown, asterisks around words, em dashes, or colon-style labels. Avoid fragments.`
                 : systemPrompt,
             messages: outgoing
           })
@@ -248,9 +250,9 @@ export default function TwinPage() {
             }
             const parsed = JSON.parse(data) as { text: string };
             fullResponse += parsed.text;
-            replaceLastAssistantMessage(fullResponse);
+            replaceLastAssistantMessage(sanitizeAssistantText(fullResponse));
             if (shouldSpeakReply) {
-              queueSpeech(parsed.text);
+              queueSpeech(sanitizeAssistantText(parsed.text));
             }
           }
         }
@@ -269,7 +271,7 @@ export default function TwinPage() {
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Unknown error';
-        const fallback = `I lost the live connection for a moment. The simulation still has your profile, but the chat stream failed: ${message}`;
+        const fallback = sanitizeAssistantText(`I lost the live connection for a moment. The simulation still has your profile, but the chat stream failed: ${message}`);
         replaceLastAssistantMessage(fallback);
         if (shouldSpeakReply) {
           stopSpeech();
@@ -293,7 +295,7 @@ export default function TwinPage() {
         setIsStreaming(false);
       }
     },
-    [activeProfile, addMessage, extractHabitChange, isStreaming, queueSpeech, replaceLastAssistantMessage, stopSpeech, voiceRepliesEnabled]
+    [activeProfile, addMessage, extractHabitChange, isStreaming, pipelineAnalysis, queueSpeech, replaceLastAssistantMessage, stopSpeech, voiceRepliesEnabled]
   );
 
   const toggleVoiceReplies = useCallback(() => {
@@ -326,7 +328,7 @@ export default function TwinPage() {
   }
 
   const showOpeningState = !hasInteracted && chatHistory.every((message) => message.role === 'assistant') && chatHistory.length <= 2;
-  const voiceButtonLifted = voiceFocusActive || orbState === 'listening' || orbState === 'thinking' || orbState === 'speaking';
+  const voiceButtonLifted = voiceFocusActive || orbState === 'listening' || orbState === 'speaking';
 
   return (
     <main className="flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-ivory to-ivory-dark pb-24 dark:bg-navy-950 dark:bg-none">
@@ -391,7 +393,7 @@ export default function TwinPage() {
         <motion.div
           initial={false}
           animate={{
-            bottom: voiceButtonLifted ? '10.8rem' : '5.65rem',
+            bottom: voiceButtonLifted ? '10.8rem' : '8.25rem',
             left: voiceButtonLifted ? '50%' : 'max(calc((100vw - 48rem) / 2 + 0.35rem), 0.35rem)',
             x: voiceButtonLifted ? '-50%' : '0%',
             scale: voiceButtonLifted ? 1.38 : 1
