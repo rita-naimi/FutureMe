@@ -25,16 +25,13 @@ interface MorphParams {
 function AnnyModel({ params }: { params: MorphParams }) {
   const { scene } = useGLTF('/models/anny.glb');
   const groupRef = useRef<THREE.Group>(null);
-  const meshesRef = useRef<THREE.SkinnedMesh[]>([]);
+  const meshesRef = useRef<THREE.Mesh[]>([]);
 
   useEffect(() => {
     meshesRef.current = [];
     scene.traverse((child) => {
-      if ((child as THREE.SkinnedMesh).isSkinnedMesh) {
-        meshesRef.current.push(child as THREE.SkinnedMesh);
-      } else if ((child as THREE.Mesh).isMesh) {
-        const mesh = child as THREE.Mesh;
-        meshesRef.current.push(mesh as any);
+      if (child instanceof THREE.Mesh) {
+        meshesRef.current.push(child);
       }
     });
 

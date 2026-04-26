@@ -144,10 +144,13 @@ export interface ReferenceMatch {
 }
 
 export interface DerivedClinicalMarkers extends ClinicalMarkers {
-  source: 'user-provided' | 'questionnaire-derived' | 'mixed';
+  source: 'user-provided' | 'synthea-matched-cohort' | 'mixed';
   providedByUser: Array<keyof ClinicalMarkers>;
   estimatedFromQuestionnaire: Array<keyof ClinicalMarkers>;
-  estimationMethod: 'questionnaire-derived heuristic';
+  estimatedFromSynthea: Array<keyof ClinicalMarkers>;
+  matchedCohortSize: number;
+  relaxedFiltersUsed: string[];
+  estimationMethod: 'rule-based matched cohort median';
   warnings: string[];
 }
 

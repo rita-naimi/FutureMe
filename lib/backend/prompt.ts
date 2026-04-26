@@ -25,12 +25,14 @@ function summarizeDerivedMarkers(derived: DerivedClinicalMarkers | undefined, ye
     derived.source === 'user-provided'
       ? 'fournis par le patient (etat actuel)'
       : derived.source === 'mixed'
-        ? 'fournis par le patient et completes par estimation issue du questionnaire'
-        : 'estimes depuis le questionnaire';
+        ? 'fournis par le patient et completes par estimation Synthea'
+        : 'estimes depuis une cohorte Synthea appariee';
   return [
     `### Marqueurs cliniques (${sourceLabel})`,
-    'Missing biomarkers are estimated from the current questionnaire profile. This is an explainable app heuristic, not a validated clinical prediction model.',
+    'Missing biomarkers are estimated from a rule-based matched cohort of similar synthetic Synthea patients. This is an explainable prototype estimation method, not a validated clinical prediction model.',
     `Methode: ${derived.estimationMethod}`,
+    `Cohorte appariee: ${derived.matchedCohortSize} patients synthetiques`,
+    ...(derived.relaxedFiltersUsed.length ? [`Filtres relaxes: ${derived.relaxedFiltersUsed.join(', ')}`] : []),
     `Cholesterol total: ${derived.totalCholesterolMgDl ?? 'NA'} mg/dL`,
     `HDL: ${derived.hdlMgDl ?? 'NA'} mg/dL`,
     `Pression arterielle systolique: ${derived.systolicBloodPressureMmHg ?? 'NA'} mmHg`,
@@ -48,8 +50,8 @@ export function buildClinicalPrompt(
 ): PromptPayload {
   const system = [
     'Vous etes un assistant de synthese clinique pour la prevention.',
-    'Vous recevez les donnees actuelles du patient et des marqueurs cliniques fournis ou estimes depuis son questionnaire.',
-    'Les marqueurs manquants peuvent etre estimes par une heuristique explicable issue du questionnaire. Cette methode n est pas un modele clinique valide.',
+    'Vous recevez les donnees actuelles du patient et des marqueurs cliniques fournis ou estimes depuis une cohorte Synthea appariee.',
+    'Les marqueurs manquants peuvent etre estimes par une methode rule-based sur patients synthetiques Synthea. Cette methode n est pas un modele clinique valide.',
     'Objectif: comparer la trajectoire passe -> present, identifier les facteurs ayant evolue, et projeter l\'evolution future probable si les habitudes restent inchangees.',
     'Ne pas donner de recommandations de traitement individualisees. Ne pas inventer de valeurs.',
     'Sortie attendue: sections Markdown courtes: Resume, Trajectoire (passe -> present), Evolution probable a 5-10 ans, Facteurs dominants, Limites.'
@@ -74,7 +76,7 @@ export function buildClinicalPrompt(
     '### Hypotheses',
     ...(riskEvidence.assumptions.length ? riskEvidence.assumptions.map((line) => `- ${line}`) : ['- Aucune hypothese supplementaire']),
     '',
-    `Tache: (1) resumer l'etat actuel du patient, (2) expliquer quels marqueurs viennent du patient et lesquels sont estimes depuis le questionnaire, (3) projeter l'evolution probable a +5/+10 ans si trends inchangees, (4) rappeler les limites de simulation.`
+    `Tache: (1) resumer l'etat actuel du patient, (2) expliquer quels marqueurs viennent du patient et lesquels sont estimes depuis Synthea, (3) projeter l'evolution probable a +5/+10 ans si trends inchangees, (4) rappeler les limites de simulation.`
   ].join('\n');
 
   return { system, user };

@@ -60,12 +60,12 @@ export function calculateCardioRisk(profile: CompletedMedicalProfile): number {
  * Formula inputs and app source:
  * - age: user questionnaire
  * - sex: user questionnaire
- * - systolicBloodPressure: user questionnaire or questionnaire-derived estimate
- * - totalCholesterol: user questionnaire or questionnaire-derived estimate
- * - hdlCholesterol: user questionnaire or questionnaire-derived estimate
+ * - systolicBloodPressure: user questionnaire or Synthea matched-cohort estimate
+ * - totalCholesterol: user questionnaire or Synthea matched-cohort estimate
+ * - hdlCholesterol: user questionnaire or Synthea matched-cohort estimate
  * - smoker: derived only from user questionnaire smokingStatus === "current"
- * - diabetes: user questionnaire or questionnaire-derived estimate
- * - onBloodPressureTreatment: questionnaire-derived estimate
+ * - diabetes: user questionnaire or Synthea matched-cohort estimate
+ * - onBloodPressureTreatment: user questionnaire or Synthea matched-cohort estimate
  *
  * Deliberately not used by this equation:
  * - BMI, exerciseDaysPerWeek, sleepHours, stressLevel, LDL, triglycerides, HbA1c, energyIntake.

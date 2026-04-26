@@ -119,8 +119,8 @@ function afficherResultats(result: Awaited<ReturnType<typeof runSimulationPipeli
   if (derivedClinicalMarkers) {
     const labels: Record<string, string> = {
       'user-provided': '✅ Fournis par toi',
-      'questionnaire-derived': '🧬 Estimés depuis le questionnaire',
-      mixed: '🧬 Fournis par toi et complétés depuis le questionnaire'
+      'synthea-matched-cohort': '🧬 Estimés depuis une cohorte Synthea',
+      mixed: '🧬 Fournis par toi et complétés depuis Synthea'
     };
     console.log('🔬  MARQUEURS CLINIQUES UTILISÉS POUR LE CALCUL DES RISQUES');
     console.log('  ─────────────────────────────────────');
